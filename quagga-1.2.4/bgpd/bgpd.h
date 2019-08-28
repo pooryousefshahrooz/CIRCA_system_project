@@ -29,6 +29,186 @@ typedef u_int32_t as_t;
 typedef u_int16_t as16_t; /* we may still encounter 16 Bit asnums */
 typedef u_int16_t bgp_size_t;
 
+
+/*
+We define our CIRCA system data structures here
+*/
+/*
+************************ CIRCA system data structre defintion starts here
+*/
+/* The size of event id,prefix and time stamp string */
+#define EVENT_ID_LENGTH  20
+#define PREFIX_LENGTH  20
+#define TIME_STAMP_LENGTH 20
+#define ASPATH_SIZE 50
+#define GRC_MSG_TIME_STAMP "GRC"
+struct peer *avatar;
+int working_mode;
+//long sequence_number_for_event_ids=1000;
+
+
+/* a list of prefixes  */
+struct update_prefix_list{
+    char * prefix[PREFIX_LENGTH];
+    struct prefix * prefix_struct;
+    bool processed_value;
+    struct update_prefix_list * next;
+};
+
+/* a list of prefixes  */
+struct witdraw_prefix{
+    char * prefix[PREFIX_LENGTH];
+    struct peer * received_from_peer;
+    struct update_prefix_list * next;
+};
+
+/* a list of root cause event ids  */
+struct list_of_event_ids{
+    char * event_id[EVENT_ID_LENGTH];
+    struct list_of_event_ids * next;
+};
+
+
+/*This data structure will save the state of root cause events if they have converged or not.*/
+struct converged{
+    char * event_id[EVENT_ID_LENGTH];
+    bool converged_value;
+    struct list_of_event_ids concurrent_events;
+    struct converged* next;
+};
+
+/* A list of peers*/
+struct peer_list{
+    struct peer * peer;
+    struct peer_list * next;
+};
+
+struct peer_list_for_sending{
+    struct peer * peer;
+    struct peer_list_for_sending * next;
+};
+
+struct neighbours_sent_to{
+    char * event_id[EVENT_ID_LENGTH];
+    struct peer_list* peer_list;
+    struct neighbours_sent_to * next;
+};
+
+/*for building the message dag and find which timestamp has cause which timestamp== which message caused which message*/
+struct cause{
+    char *sending_timestamp[TIME_STAMP_LENGTH];
+    char *event_id[EVENT_ID_LENGTH];
+    struct peer *received_from_peer;
+    char * as_path;
+    char *received_timestamp[TIME_STAMP_LENGTH];
+    struct cause* next;
+};
+
+
+/* this structure is for saving the list of received prefixes which
+ * we can use if  all the prefixes in the list of prefixes for
+ * the timestamp have been fizzled or not */
+struct time_stamp_ds{
+    char  *time_stamp[EVENT_ID_LENGTH];
+    char *event_id[EVENT_ID_LENGTH];
+    struct aspath * ASPATH;
+    char * aspath_value[ASPATH_SIZE];
+    struct peer* received_from_peer;
+    struct update_prefix_list *upl;
+    struct update_prefix_list *saved_prefixes;
+    struct attr * attr_value;
+    bool processed_value;
+    bool picked_as_best_route;
+    struct time_stamp_ds * next;
+
+};
+
+
+/* a list of timestamps  */
+struct list_of_time_stamps{
+    char * time_stamp_id[TIME_STAMP_LENGTH];
+    char * event_id[EVENT_ID_LENGTH];
+    struct peer * send_to_peer;
+    struct list_of_time_stamps * next;
+};
+
+/* a time stamp can be the cause of more than one time stamp */
+struct caused_time_stamps{
+    char time_stamp[TIME_STAMP_LENGTH];
+    char event_id[EVENT_ID_LENGTH];
+    struct peer * received_from_peer;
+    struct list_of_time_stamps* generated_time_stamps;
+    struct peer_list_for_sending* peer_list_for_sending_value;
+    struct caused_time_stamps * next;
+
+};
+/* this data strucure is used for tracking the sent timestamps */
+struct sent{
+    char time_stamp[TIME_STAMP_LENGTH];
+    char event_id[EVENT_ID_LENGTH];
+    struct peer * sent_to_peer;
+    struct list_of_time_stamps* generated_time_stamps;
+    struct sent * next;
+};
+
+
+
+/* ************************ CIRCA system data structure defintion ends here */
+
+/* ************************ CIRCA system function defintion starts here */
+extern void print_update_prefix_list(struct update_prefix_list ** head_ref);
+extern void print_time_stamp(struct time_stamp_ds ** head_ref);
+extern void print_caused_time_stamp_ds(struct caused_time_stamps ** head_ref);
+extern void print_peer_list(struct peer_list ** head_ref);
+extern void print_neighbours_we_have_sent_event(struct neighbours_sent_to ** head_ref);
+
+// extern void add_prefix_to_prefix_list(struct update_prefix_list** head_ref,char *prefix,struct prefix * prefix_struct);
+// //extern void add_new_time_stamp(struct time_stamp_ds** head_ref,char * in_event_id,char * in_time_stamp_id,long AS_owner_id,struct update_prefix_list* pl,struct peer * received_from_peer,char * ASPATH_value,struct in_addr next_hop,struct attr * attr);
+// extern bool check_if_we_have_received_prefix(struct time_stamp_ds** head_ref,char * in_prefix);
+// extern bool check_if_we_have_processed_prefix(struct time_stamp_ds** head_ref,char * in_prefix);
+// // extern struct time_stamp_ds * get_time_stamp_event_id_of_prefix(struct time_stamp_ds ** head_ref,char * in_prefix,int as_number);
+// extern void set_prefix_processed(struct time_stamp_ds** head_ref,char * in_prefix,char * time_stamp,char * event_id;char * aspath_value);
+// extern struct time_stamp_ds * delete_prefix_from_update_prefix_list(struct time_stamp_ds** head_ref,char * in_prefix,char passed_event_id[],char passed_time_stamp[]);
+// extern void set_time_stamp_processed(struct time_stamp_ds** head_ref,char * time_stamp,char * event_id);
+// extern void add_to_peer_list_for_sending(struct peer_list_for_sending ** head_ref,struct peer * in_peer);
+// extern struct caused_time_stamps * get_generated_time_stamps_sent_to(struct caused_time_stamps** head_ref, char *in_time_stamp);
+// extern struct peer_list_for_sending * get_list_of_peers_to_sent_to(struct caused_time_stamps** head_ref, char *in_time_stamp);
+// extern void add_to_generated_time_stamp_list(struct caused_time_stamps** head_ref,char * in_event_id,char *in_time_stamp,struct list_of_time_stamps * in_list_of_time_stamps,struct peer_list_for_sending * in_peer_list_for_sending);
+// extern bool check_if_sent_is_empty_second_version(struct caused_time_stamps** head_ref,char *event_id);
+// extern bool check_if_we_have_added_this_peer(struct caused_time_stamps** head_ref,struct peer * peer);
+extern void addcause(struct cause** head_ref,char *be_sending_time_stamp,char *causality,char *in_event_id,struct peer * peer); /* Done */
+// extern void insert_in_converged(struct converged ** head_ref, char * in_event_id);
+// extern void add_to_neighbours_sent_to_of_an_event(struct neighbours_sent_to** head_ref,char *in_event_id,struct peer_list * in_peer_list); /* Done */
+// extern struct neighbours_sent_to * get_neighbours_sent_to(struct neighbours_sent_to** head_ref, char *in_event_id);
+// extern void remove_neighbours_event_sent_to(struct neighbours_sent_to** head_ref, char *in_event_id);
+// extern void delete_time_stamp_from_generated_time_stamps(struct caused_time_stamps** head_ref,char * passed_event_id,char *passed_time_stamp);
+// extern struct cause * getcause(struct cause** head_ref,char * received_time_stamp,char *in_event_id);/* Done */
+// extern int get_converged_value(struct converged ** head_ref, char * in_event_id);
+// extern void set_converged_value_true(struct converged ** head_ref, char * in_event_id);
+// extern int  get_event_id_time_stamp(struct time_stamp_ds** head_ref,char * in_prefix,long AS_number,char passed_event_id[],char passed_time_stamp[]);
+
+
+
+
+// extern struct neighbours_sent_to * get_peers_to_sent_to(struct neighbours_sent_to** head_ref, char *in_event_id);
+// extern struct neighbours_sent_to * get_neighbours_sent_to(struct neighbours_sent_to** head_ref, char *in_event_id);
+
+
+
+
+
+// extern struct time_stamp_ds * get_time_stamp(struct time_stamp_ds ** head_ref,int as_number);
+// extern void add_to_sent(struct sent** head_ref, char * in_time_stamp, char * event_id,struct peer * sent_to_peer); /* Done */
+// extern void delete_from_sent(struct sent** head_ref,char *received_time_stamp,char *in_event_id);
+
+// extern void add_to_peer_list(struct peer_list ** head_ref,struct peer * in_peer);
+extern long  str_split(char* a_str, const char a_delim,int asked_section);
+/*
+************************ CIRCA system function defintion ends here
+*/
+
+
+
 /* BGP master for system wide configurations and variables.  */
 struct bgp_master
 {
@@ -67,6 +247,8 @@ struct bgp
 {
   /* AS number of this BGP instance.  */
   as_t as;
+
+  int mode;
 
   /* Name of this BGP instance.  */
   char *name;
@@ -283,6 +465,9 @@ typedef enum
 /* BGP neighbor structure. */
 struct peer
 {
+  /* CIRCA system */
+  struct update_prefix_list * update_prefix_list;
+  struct sent * sent;
   /* BGP structure.  */
   struct bgp *bgp;
 
@@ -298,7 +483,7 @@ struct peer
   u_char af_group[AFI_MAX][SAFI_MAX];
 
   /* Peer's remote AS number. */
-  as_t as;			
+  as_t as;      
 
   /* Peer's local AS number. */
   as_t local_as;
@@ -336,28 +521,29 @@ struct peer
   uint16_t table_dump_index;
 
   /* Peer information */
-  int fd;			/* File descriptor */
-  int ttl;			/* TTL of TCP connection to the peer. */
-  int rtt;			/* Estimated round-trip-time from TCP_INFO */
-  int gtsm_hops;		/* minimum hopcount to peer */
-  char *desc;			/* Description of the peer. */
+  int fd;     /* File descriptor */
+  int ttl;      /* TTL of TCP connection to the peer. */
+  int rtt;      /* Estimated round-trip-time from TCP_INFO */
+  int gtsm_hops;    /* minimum hopcount to peer */
+  char *desc;     /* Description of the peer. */
   unsigned short port;          /* Destination port for peer */
-  char *host;			/* Printable address of the peer. */
-  union sockunion su;		/* Sockunion address of the peer. */
-  time_t uptime;		/* Last Up/Down time */
-  time_t readtime;		/* Last read time */
-  time_t resettime;		/* Last reset time */
+  unsigned short avatar;          /* Destination port for peer */
+  char *host;     /* Printable address of the peer. */
+  union sockunion su;   /* Sockunion address of the peer. */
+  time_t uptime;    /* Last Up/Down time */
+  time_t readtime;    /* Last read time */
+  time_t resettime;   /* Last reset time */
   
-  ifindex_t ifindex;		/* ifindex of the BGP connection. */
-  char *ifname;			/* bind interface name. */
+  ifindex_t ifindex;    /* ifindex of the BGP connection. */
+  char *ifname;     /* bind interface name. */
   char *update_if;
   union sockunion *update_source;
   struct zlog *log;
 
-  union sockunion *su_local;	/* Sockunion of local address.  */
-  union sockunion *su_remote;	/* Sockunion of remote address.  */
-  int shared_network;		/* Is this peer shared same network. */
-  struct bgp_nexthop nexthop;	/* Nexthop */
+  union sockunion *su_local;  /* Sockunion of local address.  */
+  union sockunion *su_remote; /* Sockunion of remote address.  */
+  int shared_network;   /* Is this peer shared same network. */
+  struct bgp_nexthop nexthop; /* Nexthop */
 
   /* Peer address family configuration. */
   u_char afc[AFI_MAX][SAFI_MAX];
@@ -439,7 +625,7 @@ struct peer
 
   /* Peer status flags. */
   u_int16_t sflags;
-#define PEER_STATUS_ACCEPT_PEER	      (1 << 0) /* accept peer */
+#define PEER_STATUS_ACCEPT_PEER       (1 << 0) /* accept peer */
 #define PEER_STATUS_PREFIX_OVERFLOW   (1 << 1) /* prefix-overflow */
 #define PEER_STATUS_CAPABILITY_OPEN   (1 << 2) /* capability open send */
 #define PEER_STATUS_OPEN_DEFERRED     (1 << 3) /* deferred to open_receive */
@@ -494,23 +680,23 @@ struct peer
   struct work_queue *clear_node_queue;
   
   /* Statistics field */
-  u_int32_t open_in;		/* Open message input count */
-  u_int32_t open_out;		/* Open message output count */
-  u_int32_t update_in;		/* Update message input count */
-  u_int32_t update_out;		/* Update message ouput count */
-  time_t update_time;		/* Update message received time. */
-  u_int32_t keepalive_in;	/* Keepalive input count */
-  u_int32_t keepalive_out;	/* Keepalive output count */
-  u_int32_t notify_in;		/* Notify input count */
-  u_int32_t notify_out;		/* Notify output count */
-  u_int32_t refresh_in;		/* Route Refresh input count */
-  u_int32_t refresh_out;	/* Route Refresh output count */
-  u_int32_t dynamic_cap_in;	/* Dynamic Capability input count.  */
-  u_int32_t dynamic_cap_out;	/* Dynamic Capability output count.  */
+  u_int32_t open_in;    /* Open message input count */
+  u_int32_t open_out;   /* Open message output count */
+  u_int32_t update_in;    /* Update message input count */
+  u_int32_t update_out;   /* Update message ouput count */
+  time_t update_time;   /* Update message received time. */
+  u_int32_t keepalive_in; /* Keepalive input count */
+  u_int32_t keepalive_out;  /* Keepalive output count */
+  u_int32_t notify_in;    /* Notify input count */
+  u_int32_t notify_out;   /* Notify output count */
+  u_int32_t refresh_in;   /* Route Refresh input count */
+  u_int32_t refresh_out;  /* Route Refresh output count */
+  u_int32_t dynamic_cap_in; /* Dynamic Capability input count.  */
+  u_int32_t dynamic_cap_out;  /* Dynamic Capability output count.  */
 
   /* BGP state count */
-  u_int32_t established;	/* Established */
-  u_int32_t dropped;		/* Dropped */
+  u_int32_t established;  /* Established */
+  u_int32_t dropped;    /* Dropped */
 
   /* Syncronization list and time.  */
   struct bgp_synchronize *sync[AFI_MAX][SAFI_MAX];
@@ -583,8 +769,8 @@ struct peer
 #define PEER_RMAP_TYPE_EXPORT         (1 << 7) /* neighbor route-map export */
 };
 
-#define PEER_PASSWORD_MINLEN	(1)
-#define PEER_PASSWORD_MAXLEN	(80)
+#define PEER_PASSWORD_MINLEN  (1)
+#define PEER_PASSWORD_MAXLEN  (80)
 
 /* This structure's member directly points incoming packet data
    stream. */
@@ -604,14 +790,14 @@ struct bgp_nlri
 };
 
 /* BGP versions.  */
-#define BGP_VERSION_4		                 4
+#define BGP_VERSION_4                    4
 
 /* Default BGP port number.  */
 #define BGP_PORT_DEFAULT                       179
 
 /* BGP message header and packet size.  */
-#define BGP_MARKER_SIZE		                16
-#define BGP_HEADER_SIZE		                19
+#define BGP_MARKER_SIZE                   16
+#define BGP_HEADER_SIZE                   19
 #define BGP_MAX_PACKET_SIZE                   4096
 
 /* BGP minimum message size.  */
@@ -622,14 +808,35 @@ struct bgp_nlri
 #define BGP_MSG_ROUTE_REFRESH_MIN_SIZE          (BGP_HEADER_SIZE + 4)
 #define BGP_MSG_CAPABILITY_MIN_SIZE             (BGP_HEADER_SIZE + 3)
 
+
 /* BGP message types.  */
-#define	BGP_MSG_OPEN		                 1
-#define	BGP_MSG_UPDATE		                 2
-#define	BGP_MSG_NOTIFY		                 3
-#define	BGP_MSG_KEEPALIVE	                 4
+#define BGP_MSG_OPEN                     1
+#define BGP_MSG_UPDATE                     2
+#define BGP_MSG_NOTIFY                     3
+#define BGP_MSG_KEEPALIVE                  4
 #define BGP_MSG_ROUTE_REFRESH_NEW                5
 #define BGP_MSG_CAPABILITY                       6
 #define BGP_MSG_ROUTE_REFRESH_OLD              128
+
+#define CIRCA_HEADER_SIZE                   19
+
+
+
+
+/* CIRCA message sub types.  */
+#define CIRCA_MSG_UPDATE                        63
+#define LINK_UP                                 64
+#define LINK_DOWN                               65
+#define NEW_POLICY                              66
+#define NEW_PREFIX                              67
+#define CIRCA_MSG_FIZZLE                        68
+#define CIRCA_MSG_DISSEMINATION                 69
+#define CIRCA_MSG_GRC                           70
+#define CIRCA_MSG_FIB_ENTRY                     71
+
+#define CIRCA_MSG_MIN_SIZE                      (CIRCA_HEADER_SIZE + 4)
+
+
 
 /* BGP open optional parameter.  */
 #define BGP_OPEN_OPT_AUTH                        1
@@ -671,7 +878,7 @@ struct bgp_nlri
 #define BGP_NOTIFY_FSM_ERR                       5
 #define BGP_NOTIFY_CEASE                         6
 #define BGP_NOTIFY_CAPABILITY_ERR                7
-#define BGP_NOTIFY_MAX	                         8
+#define BGP_NOTIFY_MAX                           8
 
 #define BGP_NOTIFY_SUBCODE_UNSPECIFIC            0
 
@@ -756,7 +963,7 @@ struct bgp_nlri
 #define BGP_INIT_START_TIMER                     1
 #define BGP_DEFAULT_HOLDTIME                   180
 #define BGP_DEFAULT_KEEPALIVE                   60 
-#define BGP_DEFAULT_EBGP_ROUTEADV                3
+#define BGP_DEFAULT_EBGP_ROUTEADV                1
 #define BGP_DEFAULT_IBGP_ROUTEADV                1
 #define BGP_DEFAULT_CONNECT_RETRY                5
 
@@ -830,11 +1037,11 @@ enum bgp_clear_type
 #define BGP_ERR_INSTANCE_MISMATCH               -26
 #define BGP_ERR_LOCAL_AS_ALLOWED_ONLY_FOR_EBGP  -27
 #define BGP_ERR_CANNOT_HAVE_LOCAL_AS_SAME_AS    -28
-#define BGP_ERR_TCPSIG_FAILED			-29
-#define BGP_ERR_NO_EBGP_MULTIHOP_WITH_TTLHACK	-30
-#define BGP_ERR_NO_IBGP_WITH_TTLHACK		-31
+#define BGP_ERR_TCPSIG_FAILED     -29
+#define BGP_ERR_NO_EBGP_MULTIHOP_WITH_TTLHACK -30
+#define BGP_ERR_NO_IBGP_WITH_TTLHACK    -31
 #define BGP_ERR_CANNOT_HAVE_LOCAL_AS_SAME_AS_REMOTE_AS    -32
-#define BGP_ERR_MAX				-33
+#define BGP_ERR_MAX       -33
 
 extern struct bgp_master *bm;
 
@@ -844,7 +1051,7 @@ extern void bgp_reset (void);
 extern time_t bgp_clock (void);
 extern void bgp_zclient_reset (void);
 extern int bgp_nexthop_set (union sockunion *, union sockunion *, 
-		     struct bgp_nexthop *, struct peer *);
+         struct bgp_nexthop *, struct peer *);
 extern struct bgp *bgp_get_default (void);
 extern struct bgp *bgp_lookup (as_t, const char *);
 extern struct bgp *bgp_lookup_by_name (const char *);
@@ -852,7 +1059,7 @@ extern struct peer *peer_lookup (struct bgp *, union sockunion *);
 extern struct peer_group *peer_group_lookup (struct bgp *, const char *);
 extern struct peer_group *peer_group_get (struct bgp *, const char *);
 extern struct peer *peer_lookup_with_open (union sockunion *, as_t, struct in_addr *,
-				    int *);
+            int *);
 
 /*
  * Peers are incredibly easy to memory leak
@@ -924,9 +1131,9 @@ extern int peer_deactivate (struct peer *, afi_t, safi_t);
 extern int peer_afc_set (struct peer *, afi_t, safi_t, int);
 
 extern int peer_group_bind (struct bgp *, union sockunion *, struct peer_group *,
-		     afi_t, safi_t, as_t *);
+         afi_t, safi_t, as_t *);
 extern int peer_group_unbind (struct bgp *, struct peer *, struct peer_group *,
-		       afi_t, safi_t);
+           afi_t, safi_t);
 
 extern int peer_flag_set (struct peer *, u_int32_t);
 extern int peer_flag_unset (struct peer *, u_int32_t);

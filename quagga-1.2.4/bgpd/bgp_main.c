@@ -341,6 +341,10 @@ bgp_exit (int status)
 int
 main (int argc, char **argv)
 {
+  /* initialize CIRCA system variables */
+  struct update_prefix_list* prefix_list_head = NULL;
+
+
   char *p;
   int opt;
   int daemon_mode = 0;

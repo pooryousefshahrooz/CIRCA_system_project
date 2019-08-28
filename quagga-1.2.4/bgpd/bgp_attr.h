@@ -125,6 +125,8 @@ struct attr
   
   /* Path origin attribute */
   u_char origin;
+
+
 };
 
 /* Router Reflector related structure. */

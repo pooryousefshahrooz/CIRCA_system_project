@@ -841,18 +841,14 @@ bgp_attr_unintern (struct attr **pattr)
   struct attr *ret;
   struct attr tmp;
   struct attr_extra tmp_extra;
-  
   /* Decrement attribute reference. */
   attr->refcnt--;
-  
   tmp = *attr;
-  
   if (attr->extra)
     {
       tmp.extra = &tmp_extra;
       memcpy (tmp.extra, attr->extra, sizeof (struct attr_extra));
     }
-  
   /* If reference becomes zero then free attribute object. */
   if (attr->refcnt == 0)
     {
@@ -862,7 +858,6 @@ bgp_attr_unintern (struct attr **pattr)
       XFREE (MTYPE_ATTR, attr);
       *pattr = NULL;
     }
-
   bgp_attr_unintern_sub (&tmp);
 }
 
@@ -2556,11 +2551,22 @@ bgp_packet_mpattr_start (struct stream *s, afi_t afi, safi_t safi,
   return sizep;
 }
 
+
+int add_fib_entries_to_the_streem()
+{
+
+  return 10;
+}
+
 void
 bgp_packet_mpattr_prefix (struct stream *s, afi_t afi, safi_t safi,
 			  struct prefix *p, struct prefix_rd *prd,
 			  u_char *tag)
 {
+
+  //char buf2[SU_ADDRSTRLEN];
+//   zlog_debug ("0000000000000000o0000000000000000000 we are going to add prefix");
+// zlog_debug ("0000000000000000o0000000000000000000 we are going to add prefix %s to the streem 0000000000000000o0000000000000000000",inet_ntop(p->family, &p->u.prefix, buf2, SU_ADDRSTRLEN));
   if (safi == SAFI_MPLS_VPN)
     {
       /* Tag, RD, Prefix write. */

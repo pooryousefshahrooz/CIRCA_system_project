@@ -37,6 +37,32 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #define ORF_COMMON_PART_PERMIT     0x00 
 #define ORF_COMMON_PART_DENY       0x20 
 
+// *****************.  CIRCA related functions definitions *************
+
+
+/* 
+this function will simulate link up root cause event between
+ the avatar and the neighbor which its router id is equal to the second parameter
+*/
+extern void link_up_root_cause_event_handler(struct peer *, long);
+
+/* 
+this function will simulate link down root cause event between
+ the avatar and the neighbor which its router id is equal to the second parameter
+*/
+extern void link_down_root_cause_event_handler(struct peer *,  long);
+
+/* 
+this function will call 
+link up or link down root cause simulator functions based on the grc sub type value in the received GRC message from peer
+the second argument is the size of the packet which we need to check and place the positions of the field sin GRC messages.
+*/
+
+extern void  CIRCA_sub_type_messages_handler(struct peer *,int);
+
+// *******************. CIRCA related function definition ends here ************
+
+
 /* Packet send and receive function prototypes. */
 extern int bgp_read (struct thread *);
 extern int bgp_write (struct thread *);

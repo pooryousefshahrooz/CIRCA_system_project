@@ -37,6 +37,21 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #include "bgpd/bgp_fsm.h"
 #include "bgpd/bgp_mplsvpn.h"
 
+
+/* we import CIRCA global variables here*/
+//extern long sequence_number_for_event_ids;
+extern struct peer *avatar;
+extern int working_mode;
+extern peer_list_for_sending_head;
+extern int global_prefix_fizzling_variable_for_withdraw;
+extern int global_prefix_fizzling_variable ;
+extern time_stamp_ds_head;
+
+
+extern struct peer * sender_peer;
+/* we set to 1 if we are the owner of the prefix and zero if we are not */
+extern int owner_identity ;
+
 /* BGP advertise attribute is used for pack same attribute update into
    one packet.  To do that we maintain attribute hash in struct
    peer.  */
@@ -222,11 +237,26 @@ bgp_adj_out_set (struct bgp_node *rn, struct peer *peer, struct prefix *p,
 		 struct attr *attr, afi_t afi, safi_t safi,
 		 struct bgp_info *binfo)
 {
+
+
+    /* we will not set the update result in the avatar list 
+    in other word, we will not advertise to our avatar */
+    if (avatar)
+      if(strcmp(avatar->host , peer->host)==0)
+      {
+        //zlog_debug ("*****************************1.bgp_adj_out_set***********************!!!***we will not send to %s *****************************",peer->host);
+          return;
+      }
+  char buf[SU_ADDRSTRLEN];
+  
   struct bgp_adj_out *adj = NULL;
   struct bgp_advertise *adv;
 
   if (DISABLE_BGP_ANNOUNCE)
+  {
+    //zlog_debug ("*****************************2.bgp_adj_out_set***********************!!!***we will not send to %s *****************************",peer->host);
     return;
+  }
 
   /* Look for adjacency information. */
   if (rn)
@@ -267,7 +297,34 @@ bgp_adj_out_set (struct bgp_node *rn, struct peer *peer, struct prefix *p,
 
   /* Add new advertisement to advertisement attribute list. */
   bgp_advertise_add (adv->baa, adv);
+  if(strcmp("Static announcement",adv->binfo->peer->host)==0)
+  {
+    // zlog_debug ("************************\n");
+    // zlog_debug ("************************\n");
+    // zlog_debug ("************this is our own prefixe************\n");
+    // zlog_debug ("*******************************prefix %s/%d *************\n",inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),p->prefixlen);
+    // zlog_debug ("************************\n");
+    // zlog_debug ("***********%s*************\n",adv->baa->attr->aspath->str);
+    owner_identity = 1;
+    sender_peer = NULL;
+  }
+  else{
+    // zlog_debug ("************************\n");
+    // zlog_debug ("***********the ASPATH is %s*************\n",adv->baa->attr->aspath->str);
+    // zlog_debug ("************************\n");
+    owner_identity = 0;
+    // zlog_debug ("1****************************************************!!!***we set  %s as our sender !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *****************************\n",adv->binfo->peer->host);
+    sender_peer = adv->binfo->peer;
 
+    // zlog_debug ("2****************************************************!!!***we set  %s as our sender !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *****************************\n",sender_peer->host);
+
+  }
+  if(working_mode==1)
+  add_to_for_sending_list(&peer_list_for_sending_head,peer);
+  //sender_peer = adv->binfo->peer;
+  // zlog_debug ("*******************************3.bgp_adj_out_set*********************!!!***we will send prefix %s/%d  received from %s to %s *****************************\n",inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),p->prefixlen,adv->binfo->peer->host,peer->host);
+  
+  global_prefix_fizzling_variable = 1;
   BGP_ADV_FIFO_ADD (&peer->sync[afi][safi]->update, &adv->fifo);
 }
 
@@ -275,11 +332,25 @@ void
 bgp_adj_out_unset (struct bgp_node *rn, struct peer *peer, struct prefix *p, 
 		   afi_t afi, safi_t safi)
 {
+
+  //char buf[SU_ADDRSTRLEN];
+      /* we will not set the update result in the avatar list 
+    in other word, we will not advertise to our avatar */
+    if (avatar)
+      if(strcmp(avatar->host , peer->host)==0)
+      {
+        //zlog_debug ("**************************1,bgp_adj_out_unset**************************!!!***we did not set to %s *****************************",peer->host);
+          return;
+      }
+
   struct bgp_adj_out *adj;
   struct bgp_advertise *adv;
 
   if (DISABLE_BGP_ANNOUNCE)
+  {
+    //zlog_debug ("**********************************2.bgp_adj_out_unset******************!!!***we did not add  to %s *****************************",peer->host);
     return;
+  }
 
   /* Lookup existing adjacency, if it is not there return immediately.  */
   for (adj = rn->adj_out; adj; adj = adj->next)
@@ -287,7 +358,10 @@ bgp_adj_out_unset (struct bgp_node *rn, struct peer *peer, struct prefix *p,
       break;
 
   if (! adj)
+  {
+    //zlog_debug ("**********************************3.bgp_adj_out_unset******************!!!***we did not add  to %s *****************************",peer->host);
     return;
+  }
 
   /* Clearn up previous advertisement.  */
   if (adj->adv)
@@ -306,9 +380,14 @@ bgp_adj_out_unset (struct bgp_node *rn, struct peer *peer, struct prefix *p,
 
       /* Schedule packet write. */
       BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
+      //zlog_debug ("**********************************4.bgp_adj_out_unset******************!!!***we did set  to %s *****************************",peer->host);
+      if(working_mode==1)
+      add_to_for_sending_list(&peer_list_for_sending_head,peer);
+    global_prefix_fizzling_variable_for_withdraw = 1;
     }
   else
     {
+   // zlog_debug ("**********************************5.bgp_adj_out_unset******************!!!***we did set received from %s  to %s *****************************\n ",rn->adj_in->peer->host,peer->host);
       /* Remove myself from adjacency. */
       BGP_ADJ_OUT_DEL (rn, adj);
       
