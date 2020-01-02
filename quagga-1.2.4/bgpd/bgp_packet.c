@@ -3984,7 +3984,7 @@ circa_update_receive (struct peer *peer, int size)
     // zlog_debug("we will copy aspath in aspath str %s",attr.aspath->str);
     strncpy(aspath_str_value,attr.aspath->str,PREFIX_LENGTH);
   }
-    zlog_debug("\n ********************* we received an UPDATE message from %s with event id %s and time stamp %s ************ \n ",peer->host,in_time_stamp_id,in_event_id);
+    zlog_debug("\n ********************* we received an UPDATE message from %s with event id %s and time stamp %s ************ \n ",peer->host,in_event_id,in_time_stamp_id);
 
     // zlog_debug("we are going to add new time stamp");
     add_new_time_stamp(&time_stamp_ds_head,in_event_id,in_time_stamp_id,peer->local_as,prefix_list_head,peer,&attr,aspath_str_value);
