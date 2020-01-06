@@ -1600,60 +1600,115 @@ struct bgp_process_queue
 };
 
 
-void circa_fib_entry_update(struct peer * peer,struct attr * attr,struct prefix * affected_prefix)
+void circa_fib_entry_update(struct peer * peer,struct prefix * p,struct bgp_info * new,struct bgp * bgp,struct attr * passed_attr,struct node_info *passed_rn,struct prefix_rd *prd,int type, int sub_type,
+      afi_t afi, safi_t safi)
 {
-
   char buf[SU_ADDRSTRLEN];
   /* Received Logging. */
-  zlog_debug ("** Update FIB entry using peer %s for prefix %s/%d **",peer->host,inet_ntop(affected_prefix->family, &(affected_prefix->u.prefix), buf, SU_ADDRSTRLEN),affected_prefix->prefixlen);
+  //zlog_debug ("** Update FIB entry using peer %s for prefix %s/%d **",peer->host,inet_ntop(affected_prefix->family, &(affected_prefix->u.prefix), buf, SU_ADDRSTRLEN),affected_prefix->prefixlen);
+  zlog_debug ("************* **** ***********\n");
+  struct attr * our_simple_att;
+  struct attr self_attr;
+  struct aspath *self_aspath;
+  struct bgp_info * simple_bgp_info;
+
+  // if (afi == AFI_IP)
+  //   str2prefix ("200.1.1.0/0", &p);
+  // else 
+  //   str2prefix ("200.1.1.0/0", &p);
+
+    //zlog_debug (" we stream_get_endp line 673 and from is %s and prefix is %s  \n",from->host,inet_ntop(next_prefix.family, &(next_prefix.u.prefix), buf, INET6_BUFSIZ));
+    
+  /* create and fill attr data structure */
+  // bgp_attr_default_set (&attr, BGP_ORIGIN_IGP);
+  // aspath = attr.aspath;
+  // attr.local_pref = bgp->default_local_pref;
+  // memcpy (&attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+
+
+  // bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
+  // self_aspath = self_attr.aspath;
+  // self_attr.local_pref = bgp->default_local_pref;
+  // memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+
+  // memset (&self_attr, 0, sizeof (struct attr));
+  // self_attr.extra = &self_attr;
+
+  // /* Origin attribute. */
+  //shahrooz
+//   bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
+
+//   //attr.origin = origin;
+//   self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_ORIGIN);
+//   /* AS path attribute. */
+//   self_aspath =  aspath_str2aspath("3 1");
+//   // self_aspath = aspath_add_seq_n (self_aspath, 3, 1);
+//   self_attr.aspath = self_aspath;
+//   self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_AS_PATH);
+//   /* Next hop attribute.  */
+//   self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_NEXT_HOP);
+
+
+//   bgp = peer->bgp;
+//   struct bgp_node *rn;
+//   rn = bgp_afi_node_get (bgp->rib[afi][safi], afi, safi, p, prd);
+
+// /* Make new BGP info. */
+//   simple_bgp_info = info_make(type, sub_type, peer, passed_attr, passed_rn);
   
-  struct bgp_node *rn;
-  struct bgp_info *new;
-  struct bgp *bgp;
-  bgp = peer->bgp;
-
-// bgp_update (peer, &p, attr, packet->afi, packet->safi, 
-//         ZEBRA_ROUTE_BGP, BGP_ROUTE_NORMAL, NULL, NULL, 0);
-
-//   bgp_update (struct peer *peer, struct prefix *p, struct attr *attr,
-//             afi_t afi, safi_t safi, int type, int sub_type,
-//             struct prefix_rd *prd, u_char *tag, int soft_reconfig)
-
-
-  rn = bgp_afi_node_get (bgp->rib[AFI_IP][SAFI_UNICAST], AFI_IP, SAFI_UNICAST, affected_prefix, NULL);
-
-   /* Make new BGP info. */
-  // new = info_make(ZEBRA_ROUTE_BGP, BGP_ROUTE_AGGREGATE, peer, attr, rn);
   // /* Update MPLS tag. */
-  
-  // memcpy ((bgp_info_extra_get (new))->tag, tag, 3);
+  // if (safi == SAFI_MPLS_VPN)
+  //   memcpy ((bgp_info_extra_get (new))->tag, tag, 3);
 
-
-
-
-  
+  // /* Nexthop reachability check. */
+  // if ((afi == AFI_IP || afi == AFI_IP6) && safi == SAFI_UNICAST)
+  //   {
+  //     if (peer->sort == BGP_PEER_EBGP && peer_ttl (peer) == 1 &&
+  //   ! CHECK_FLAG (peer->flags, PEER_FLAG_DISABLE_CONNECTED_CHECK))
+  // connected = 1;
+  //     else
+  // connected = 0;
+  //     if (bgp_ensure_nexthop (new, NULL, connected))
   // bgp_info_set_flag (rn, new, BGP_INFO_VALID);
-
-
+  //     else
+  // {
+  //   if (BGP_DEBUG(nht, NHT))
+  //     {
+  //       char buf1[INET6_ADDRSTRLEN];
+  //       inet_ntop(AF_INET, (const void *)&attr_new->nexthop, buf1, INET6_ADDRSTRLEN);
+  //       zlog_debug("%s(%s): NH unresolved", __FUNCTION__, buf1);
+  //     }
+  //   bgp_info_unset_flag (rn, new, BGP_INFO_VALID);
+  // }
+  //   }
+  // else
+  //   bgp_info_set_flag (rn, new, BGP_INFO_VALID);
+  // /* Increment prefix */
+  // bgp_aggregate_increment (bgp, p, new, afi, safi);
+  // /* Register new BGP information. */
   // bgp_info_add (rn, new);
-  
-  // /* route_node_get lock */
-  // bgp_unlock_node (rn);
 
-  // bgp_attr_flush (&new_attr);
+  // bgp_zebra_announce (p, new, bgp, safi);
 
 
-
-
-
-  struct bgp_info *new_select;
-  new_select = rn->info;
-  if (new_select)
+  if (new)
     {
-      bgp_info_set_flag (rn, new_select, BGP_INFO_SELECTED);
-      bgp_info_unset_flag (rn, new_select, BGP_INFO_ATTR_CHANGED);
-      UNSET_FLAG (new_select->flags, BGP_INFO_MULTIPATH_CHG);
+      /* for updating RIB */
+      //bgp_info_set_flag (rn, new, BGP_INFO_SELECTED);
+      //bgp_info_unset_flag (rn, new, BGP_INFO_ATTR_CHANGED);
+      // UNSET_FLAG (new->flags, BGP_INFO_MULTIPATH_CHG);
+
+
+      // /* for updating only FIB */
+      // if (afi == AFI_IP)
+      //   str2prefix ("100.10.10.0/0", &p);
+      // else 
+      //   str2prefix ("100.10.10.0/0", &p);
+      zlog_debug ("************* we are calling bgp_zebra_announce done ***********\n");
+      bgp_zebra_announce (p, new, bgp, safi);
     }
+    else
+      zlog_debug ("************* we are not  calling bgp_zebra_announce done ***********\n");
 
 
   // /* Check each BGP peer. */
@@ -1692,7 +1747,7 @@ void circa_fib_entry_update(struct peer * peer,struct attr * attr,struct prefix 
   //   bgp_info_reap (rn, old_select);
   
   // UNSET_FLAG (rn->flags, BGP_NODE_PROCESS_SCHEDULED);
-  return 0;
+  //return 0;
 }
 
 
@@ -2767,13 +2822,390 @@ bgp_withdraw_rsclient (struct peer *rsclient, afi_t afi, safi_t safi,
   bgp_unlock_node (rn);
 }
 
+
+static int
+circa_update_main (struct peer *peer, struct prefix *p, struct attr *attr,
+      afi_t afi, safi_t safi, int type, int sub_type,
+      struct prefix_rd *prd, u_char *tag, int soft_reconfig)
+{
+zlog_debug ("*************************start of circa_update_main function for peer   %s ",peer->host);
+  //shahrooz
+  int ret;
+  int aspath_loop_count = 0;
+  struct bgp_node *rn;
+  struct bgp *bgp;
+  struct attr new_attr;
+  struct attr_extra new_extra;
+  struct attr *attr_new;
+  struct bgp_info *ri;
+  struct bgp_info *new;
+  const char *reason;
+  char buf[SU_ADDRSTRLEN];
+  int connected = 0;
+
+  memset (&new_attr, 0, sizeof(struct attr));
+  memset (&new_extra, 0, sizeof(struct attr_extra));
+
+  bgp = peer->bgp;
+  rn = bgp_afi_node_get (bgp->rib[afi][safi], afi, safi, p, prd);
+  
+  /* When peer's soft reconfiguration enabled.  Record input packet in
+     Adj-RIBs-In.  */
+  if (! soft_reconfig && CHECK_FLAG (peer->af_flags[afi][safi], PEER_FLAG_SOFT_RECONFIG)
+      && peer != bgp->peer_self)
+    bgp_adj_in_set (rn, peer, attr);
+
+  /* Check previously received route. */
+  for (ri = rn->info; ri; ri = ri->next)
+    if (ri->peer == peer && ri->type == type && ri->sub_type == sub_type)
+      break;
+
+  /* AS path local-as loop check. */
+  if (peer->change_local_as)
+    {
+      if (! CHECK_FLAG (peer->flags, PEER_FLAG_LOCAL_AS_NO_PREPEND))
+  aspath_loop_count = 1;
+
+      if (aspath_loop_check (attr->aspath, peer->change_local_as) > aspath_loop_count) 
+  {
+    reason = "as-path contains our own AS;";
+    //goto filtered;
+  }
+    }
+
+  /* AS path loop check. */
+  if (aspath_loop_check (attr->aspath, bgp->as) > peer->allowas_in[afi][safi]
+      || (CHECK_FLAG(bgp->config, BGP_CONFIG_CONFEDERATION)
+    && aspath_loop_check(attr->aspath, bgp->confed_id)
+    > peer->allowas_in[afi][safi]))
+    {
+      reason = "as-path contains our own AS;";
+      //goto filtered;
+    }
+
+  /* Route reflector originator ID check.  */
+  if (attr->flag & ATTR_FLAG_BIT (BGP_ATTR_ORIGINATOR_ID)
+      && IPV4_ADDR_SAME (&bgp->router_id, &attr->extra->originator_id))
+    {
+      reason = "originator is us;";
+      //goto filtered;
+    }
+
+  /* Route reflector cluster ID check.  */
+  if (bgp_cluster_filter (peer, attr))
+    {
+      reason = "reflected from the same cluster;";
+      //goto  filtered;
+    }
+
+  /* Apply incoming filter.  */
+  if (bgp_input_filter (peer, p, attr, afi, safi) == FILTER_DENY)
+    {
+      reason = "filter;";
+      //goto filtered;
+    }
+
+  new_attr.extra = &new_extra;
+  bgp_attr_dup (&new_attr, attr);
+
+  /* Apply incoming route-map.
+   * NB: new_attr may now contain newly allocated values from route-map "set"
+   * commands, so we need bgp_attr_flush in the error paths, until we intern
+   * the attr (which takes over the memory references) */
+  if (bgp_input_modifier (peer, p, &new_attr, afi, safi) == RMAP_DENY)
+    {
+      reason = "route-map;";
+      bgp_attr_flush (&new_attr);
+      //goto filtered;
+    }
+
+  /* IPv4 unicast next hop check.  */
+  if (afi == AFI_IP && safi == SAFI_UNICAST)
+    {
+      /* Next hop must not be 0.0.0.0 nor Class D/E address. Next hop
+   must not be my own address.  */
+      if (new_attr.nexthop.s_addr == 0
+    || IPV4_CLASS_DE (ntohl (new_attr.nexthop.s_addr))
+    || bgp_nexthop_self (&new_attr))
+  {
+    reason = "martian next-hop;";
+
+
+
+
+    //bgp_attr_flush (&new_attr);
+   // goto filtered;
+  }
+    }
+
+  attr_new = bgp_attr_intern (&new_attr);
+
+  // /* If the update is implicit withdraw. */
+  // if (ri)
+  //   {
+  //     ri->uptime = bgp_clock ();
+
+  //     /* Same attribute comes in. */
+  //     if (!CHECK_FLAG (ri->flags, BGP_INFO_REMOVED) 
+  //         && attrhash_cmp (ri->attr, attr_new))
+  // {
+  //   if (CHECK_FLAG (bgp->af_flags[afi][safi], BGP_CONFIG_DAMPENING)
+  //       && peer->sort == BGP_PEER_EBGP
+  //       && CHECK_FLAG (ri->flags, BGP_INFO_HISTORY))
+  //     {
+  //       if (BGP_DEBUG (update, UPDATE_IN))  
+  //     zlog (peer->log, LOG_DEBUG, "%s rcvd  prefix (1)%s/%d",
+  //     peer->host,
+  //     inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),
+  //     p->prefixlen);
+
+  //       if (bgp_damp_update (ri, rn, afi, safi) != BGP_DAMP_SUPPRESSED)
+  //         {
+  //                 bgp_aggregate_increment (bgp, p, ri, afi, safi);
+  //                 bgp_process (bgp, rn, afi, safi);
+  //               }
+  //     }
+  //         else /* Duplicate - odd */
+  //     {
+  //       if (BGP_DEBUG (update, UPDATE_IN))  
+  //   zlog (peer->log, LOG_DEBUG,
+  //   "%s rcvd %s/%d...duplicate ignored",
+  //   peer->host,
+  //   inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),
+  //   p->prefixlen);
+
+  //       /* graceful restart STALE flag unset. */
+  //       if (CHECK_FLAG (ri->flags, BGP_INFO_STALE))
+  //   {
+  //     bgp_info_unset_flag (rn, ri, BGP_INFO_STALE);
+  //     bgp_process (bgp, rn, afi, safi);
+  //   }
+  //     }
+
+  //   bgp_unlock_node (rn);
+  //   bgp_attr_unintern (&attr_new);
+  //         bgp_attr_flush (&new_attr);
+
+  //   return 0;
+  // }
+
+  //     /* Withdraw/Announce before we fully processed the withdraw */
+  //     if (CHECK_FLAG(ri->flags, BGP_INFO_REMOVED))
+  //       {
+  //         if (BGP_DEBUG (update, UPDATE_IN))
+  //           zlog (peer->log, LOG_DEBUG, "%s rcvd %s/%d, flapped quicker than processing",
+  //           peer->host,
+  //           inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),
+  //           p->prefixlen);
+  //         bgp_info_restore (rn, ri);
+  //       }
+
+  //     /* Received Logging. */
+  //     if (BGP_DEBUG (update, UPDATE_IN))  
+  // zlog (peer->log, LOG_DEBUG, "%s rcvd prefix(2) %s/%d",
+  //       peer->host,
+  //       inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),
+  //       p->prefixlen);
+  //     /* graceful restart STALE flag unset. */
+  //     if (CHECK_FLAG (ri->flags, BGP_INFO_STALE))
+  // bgp_info_unset_flag (rn, ri, BGP_INFO_STALE);
+
+  //     /* The attribute is changed. */
+  //     bgp_info_set_flag (rn, ri, BGP_INFO_ATTR_CHANGED);
+      
+  //     /* implicit withdraw, decrement aggregate and pcount here.
+  //      * only if update is accepted, they'll increment below.
+  //      */
+  //     bgp_aggregate_decrement (bgp, p, ri, afi, safi);
+      
+  //     /* Update bgp route dampening information.  */
+  //     if (CHECK_FLAG (bgp->af_flags[afi][safi], BGP_CONFIG_DAMPENING)
+  //   && peer->sort == BGP_PEER_EBGP)
+  // {
+  //   /* This is implicit withdraw so we should update dampening
+  //      information.  */
+  //   if (! CHECK_FLAG (ri->flags, BGP_INFO_HISTORY))
+  //     bgp_damp_withdraw (ri, rn, afi, safi, 1);  
+  // }
+  
+  //     /* Update to new attribute.  */
+  //     bgp_attr_unintern (&ri->attr);
+  //     ri->attr = attr_new;
+
+  //     /* Update MPLS tag.  */
+  //     if (safi == SAFI_MPLS_VPN)
+  //       memcpy ((bgp_info_extra_get (ri))->tag, tag, 3);
+
+  //     bgp_attr_flush (&new_attr);
+
+  //     /* Update bgp route dampening information.  */
+  //     if (CHECK_FLAG (bgp->af_flags[afi][safi], BGP_CONFIG_DAMPENING)
+  //   && peer->sort == BGP_PEER_EBGP)
+  // {
+  //   /* Now we do normal update dampening.  */
+  //   ret = bgp_damp_update (ri, rn, afi, safi);
+  //   if (ret == BGP_DAMP_SUPPRESSED)
+  //     {
+  //       bgp_unlock_node (rn);
+  //       return 0;
+  //     }
+  // }
+
+  //     /* Nexthop reachability check. */
+  //     if ((afi == AFI_IP || afi == AFI_IP6) && safi == SAFI_UNICAST)
+  // {
+  //   if (peer->sort == BGP_PEER_EBGP && peer_ttl (peer) == 1 &&
+  //       ! CHECK_FLAG (peer->flags, PEER_FLAG_DISABLE_CONNECTED_CHECK))
+  //     connected = 1;
+  //   else
+  //     connected = 0;
+
+  //   if (bgp_ensure_nexthop (ri, NULL, connected))
+  //     bgp_info_set_flag (rn, ri, BGP_INFO_VALID);
+  //   else
+  //     {
+  //       if (BGP_DEBUG(nht, NHT))
+  //   {
+  //     char buf1[INET6_ADDRSTRLEN];
+  //     inet_ntop(AF_INET, (const void *)&attr_new->nexthop, buf1, INET6_ADDRSTRLEN);
+  //     zlog_debug("%s(%s): NH unresolved", __FUNCTION__, buf1);
+  //   }
+  //       bgp_info_unset_flag (rn, ri, BGP_INFO_VALID);
+  //     }
+  // }
+  //     else
+  // bgp_info_set_flag (rn, ri, BGP_INFO_VALID);
+
+  //     bgp_attr_flush (&new_attr);
+
+  //     /* Process change. */
+  //     bgp_aggregate_increment (bgp, p, ri, afi, safi);
+
+  //     bgp_process (bgp, rn, afi, safi);
+  //     bgp_unlock_node (rn);
+
+  //     return 0;
+  //   }
+
+  /* Received Logging. */
+  if (BGP_DEBUG (update, UPDATE_IN))  
+    {
+      zlog (peer->log, LOG_DEBUG, "%s rcvd prefix (3) %s/%d",
+      peer->host,
+      inet_ntop(p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),
+      p->prefixlen);
+    }
+  
+  /* Make new BGP info. */
+  new = info_make(type, sub_type, peer, attr_new, rn);
+  
+  /* Update MPLS tag. */
+  if (safi == SAFI_MPLS_VPN)
+    memcpy ((bgp_info_extra_get (new))->tag, tag, 3);
+
+  /* Nexthop reachability check. */
+  if ((afi == AFI_IP || afi == AFI_IP6) && safi == SAFI_UNICAST)
+    {
+      if (peer->sort == BGP_PEER_EBGP && peer_ttl (peer) == 1 &&
+    ! CHECK_FLAG (peer->flags, PEER_FLAG_DISABLE_CONNECTED_CHECK))
+  connected = 1;
+      else
+  connected = 0;
+
+      if (bgp_ensure_nexthop (new, NULL, connected))
+  bgp_info_set_flag (rn, new, BGP_INFO_VALID);
+      else
+  {
+    if (BGP_DEBUG(nht, NHT))
+      {
+        char buf1[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET, (const void *)&attr_new->nexthop, buf1, INET6_ADDRSTRLEN);
+        zlog_debug("%s(%s): NH unresolved", __FUNCTION__, buf1);
+      }
+    bgp_info_unset_flag (rn, new, BGP_INFO_VALID);
+  }
+    }
+  else
+    bgp_info_set_flag (rn, new, BGP_INFO_VALID);
+
+  /* Increment prefix */
+  bgp_aggregate_increment (bgp, p, new, afi, safi);
+  
+  /* Register new BGP information. */
+  bgp_info_add (rn, new);
+
+  
+  
+  /* route_node_get lock */
+  bgp_unlock_node (rn);
+
+  bgp_attr_flush (&new_attr);
+
+  /* If maximum prefix count is configured and current prefix
+     count exeed it. */
+  if (bgp_maximum_prefix_overflow (peer, afi, safi, 0))
+    return -1;
+  
+  /* Process change. */
+  //bgp_process (bgp, rn, afi, safi);
+
+  zlog_debug (" before filtered: ************* updating FIB ***********\n");
+  zlog_debug ("before filtered:  ************* this is received prefix %s ***********\n",inet_ntop (p->family, &p->u.prefix, buf, SU_ADDRSTRLEN));
+
+  struct prefix affected_prefix;
+  if (afi == AFI_IP)
+    str2prefix ("100.100.0.0/24", &affected_prefix);
+  else 
+    str2prefix ("100.100.0.0/24", &affected_prefix);
+
+  circa_fib_entry_update(peer,&affected_prefix,new,bgp,&attr_new,&rn,prd,type,sub_type,afi,safi);
+
+  zlog_debug ("************* before filtered:  done ***********\n");
+
+
+  return 0;
+
+  /* This BGP update is filtered.  Log the reason then update BGP
+     entry.  */
+ filtered:
+ 
+  zlog_debug ("************* in filtered: this is received prefix %s ***********\n",inet_ntop (p->family, &p->u.prefix, buf, SU_ADDRSTRLEN));
+
+
+  zlog_debug ("*************in filtered:   new place for updating FIB ***********\n");
+
+  struct prefix affected_prefix2;
+  if (afi == AFI_IP)
+    str2prefix ("100.100.0.0/24", &affected_prefix2);
+  else 
+    str2prefix ("100.100.0.0/24", &affected_prefix2);
+  circa_fib_entry_update(peer,&affected_prefix2,new,bgp,&attr_new,&rn,prd,type,sub_type,afi,safi);
+  zlog_debug ("************* in filtered:  new place for updating FIB done ***********\n");
+
+  if (BGP_DEBUG (update, UPDATE_IN))
+    zlog (peer->log, LOG_DEBUG,
+    "%s in filtered:  rcvd UPDATE about %s/%d -- DENIED due to: %s",
+    peer->host,
+    inet_ntop (p->family, &p->u.prefix, buf, SU_ADDRSTRLEN),
+    p->prefixlen, reason);
+
+  if (ri)
+    bgp_rib_remove (rn, ri, peer, afi, safi);
+
+  bgp_unlock_node (rn);
+  bgp_attr_flush (&new_attr);
+
+  return 0;
+}
+
+
 static int
 bgp_update_main (struct peer *peer, struct prefix *p, struct attr *attr,
 	    afi_t afi, safi_t safi, int type, int sub_type,
 	    struct prefix_rd *prd, u_char *tag, int soft_reconfig)
 {
 //zlog_debug ("*************************start of bgp_update_main function for peer   %s ",peer->host);
-
+  //shahrooz
   int ret;
   int aspath_loop_count = 0;
   struct bgp_node *rn;
@@ -3050,7 +3482,7 @@ bgp_update_main (struct peer *peer, struct prefix *p, struct attr *attr,
 
   /* Make new BGP info. */
   new = info_make(type, sub_type, peer, attr_new, rn);
-
+  
   /* Update MPLS tag. */
   if (safi == SAFI_MPLS_VPN)
     memcpy ((bgp_info_extra_get (new))->tag, tag, 3);
@@ -3085,6 +3517,8 @@ bgp_update_main (struct peer *peer, struct prefix *p, struct attr *attr,
   
   /* Register new BGP information. */
   bgp_info_add (rn, new);
+
+  
   
   /* route_node_get lock */
   bgp_unlock_node (rn);
@@ -3095,9 +3529,27 @@ bgp_update_main (struct peer *peer, struct prefix *p, struct attr *attr,
      count exeed it. */
   if (bgp_maximum_prefix_overflow (peer, afi, safi, 0))
     return -1;
-
+  
   /* Process change. */
   bgp_process (bgp, rn, afi, safi);
+
+
+  if(working_mode==0)
+      {
+      zlog_debug ("************* updating FIB ***********\n");
+
+
+      struct prefix affected_prefix;
+      if (afi == AFI_IP)
+        str2prefix ("100.100.0.0/24", &affected_prefix);
+      else 
+        str2prefix ("100.100.0.0/24", &affected_prefix);
+
+      circa_fib_entry_update(peer,&affected_prefix,new,bgp,&attr_new,&rn,prd,type,sub_type,afi,safi);
+
+      zlog_debug ("************* done ***********\n");
+    }
+
   return 0;
 
   /* This BGP update is filtered.  Log the reason then update BGP
@@ -3118,6 +3570,37 @@ bgp_update_main (struct peer *peer, struct prefix *p, struct attr *attr,
 
   return 0;
 }
+
+int
+circa_update (struct peer *peer, struct prefix *p, struct attr *attr,
+            afi_t afi, safi_t safi, int type, int sub_type,
+            struct prefix_rd *prd, u_char *tag, int soft_reconfig)
+{
+
+  zlog_debug ("*************************start of circa_update function for peer   %s ",peer->host);
+
+
+  struct peer *rsclient;
+  struct listnode *node, *nnode;
+  struct bgp *bgp;
+  int ret;
+
+  ret = circa_update_main (peer, p, attr, afi, safi, type, sub_type, prd, tag,
+          soft_reconfig);
+
+  // bgp = peer->bgp;
+
+  // /* Process the update for each RS-client. */
+  // for (ALL_LIST_ELEMENTS (bgp->rsclient, node, nnode, rsclient))
+  //   {
+  //     if (CHECK_FLAG (rsclient->af_flags[afi][safi], PEER_FLAG_RSERVER_CLIENT))
+  //       bgp_update_rsclient (rsclient, afi, safi, attr, peer, p, type,
+  //               sub_type, prd, tag);
+  //   }
+
+  return ret;
+}
+
 
 int
 bgp_update (struct peer *peer, struct prefix *p, struct attr *attr,
@@ -4018,6 +4501,179 @@ bgp_reset (void)
   bgp_zclient_reset ();
   access_list_reset ();
   prefix_list_reset ();
+}
+
+/* We extract list of prefixes here */
+int
+circa_nlri_parse_ip (struct peer *peer, struct attr *attr,
+                   struct bgp_nlri *packet)
+{
+
+  zlog_debug("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww  start od circa_nlri_parse_ip for %s \n",peer->host);
+  int prefix_receiver_counter = 0;
+  int prefix_in_withdraw_receiver_counter = 0;
+
+  u_char *pnt;
+  u_char *lim;
+  struct prefix p;
+  int psize;
+  int ret;
+
+  /* Check peer status. */
+  if (peer->status != Established)
+    return 0;
+  
+  pnt = packet->nlri;
+  lim = pnt + packet->length;
+
+  /* RFC4771 6.3 The NLRI field in the UPDATE message is checked for
+     syntactic validity.  If the field is syntactically incorrect,
+     then the Error Subcode is set to Invalid Network Field. */
+  for (; pnt < lim; pnt += psize)
+    {
+      /* Clear prefix structure. */
+      memset (&p, 0, sizeof (struct prefix));
+
+      /* Fetch prefix length. */
+      p.prefixlen = *pnt++;
+      /* afi/safi validity already verified by caller, bgp_update_receive */
+      p.family = afi2family (packet->afi);
+      
+      /* Prefix length check. */
+      if (p.prefixlen > prefix_blen (&p) * 8)
+        {
+          plog_err (peer->log,
+                    "%s [Error] FIB packet error"
+                    " (wrong prefix length %u for afi %u)",
+                    peer->host, p.prefixlen, packet->afi);
+          return -1;
+        }
+      
+      /* Packet size overflow check. */
+      psize = PSIZE (p.prefixlen);
+
+      /* When packet overflow occur return immediately. */
+      if (pnt + psize > lim)
+        {
+          plog_err (peer->log,
+                    "%s [Error] FIB packet error"
+                    " (prefix length %u overflows packet)",
+                    peer->host, p.prefixlen);
+          return -1;
+        }
+      
+      /* Defensive coding, double-check the psize fits in a struct prefix */  
+      if (psize > (ssize_t) sizeof(p.u))
+        {
+          plog_err (peer->log,
+                    "%s [Error] FIB packet error"
+                    " (prefix length %u too large for prefix storage %zu!?!!",
+                    peer->host, p.prefixlen, sizeof(p.u));
+          return -1;
+        }
+
+      /* Fetch prefix from NLRI packet. */
+      memcpy (&p.u.prefix, pnt, psize);
+
+      /* Check address. */
+      if (packet->afi == AFI_IP && packet->safi == SAFI_UNICAST)
+  {
+    if (IN_CLASSD (ntohl (p.u.prefix4.s_addr)))
+      {
+       /* 
+        * From RFC4271 Section 6.3: 
+        * 
+        * If a prefix in the NLRI field is semantically incorrect
+        * (e.g., an unexpected multicast IP address), an error SHOULD
+        * be logged locally, and the prefix SHOULD be ignored.
+        */
+        zlog (peer->log, LOG_ERR, 
+        "%s: IPv4 unicast NLRI is multicast address %s, ignoring",
+        peer->host, inet_ntoa (p.u.prefix4));
+        continue;
+      }
+  }
+
+      /* Check address. */
+      if (packet->afi == AFI_IP6 && packet->safi == SAFI_UNICAST)
+  {
+    if (IN6_IS_ADDR_LINKLOCAL (&p.u.prefix6))
+      {
+        char buf[BUFSIZ];
+
+        zlog (peer->log, LOG_ERR, 
+        "%s: IPv6 unicast NLRI is link-local address %s, ignoring",
+        peer->host,
+        inet_ntop (AF_INET6, &p.u.prefix6, buf, BUFSIZ));
+        continue;
+      }
+    if (IN6_IS_ADDR_MULTICAST (&p.u.prefix6))
+      {
+        char buf[BUFSIZ];
+
+        zlog (peer->log, LOG_ERR, 
+        "%s: IPv6 unicast NLRI is multicast address %s, ignoring",
+        peer->host,
+        inet_ntop (AF_INET6, &p.u.prefix6, buf, BUFSIZ));
+        continue;
+      }
+        }
+
+      /* Normal process. */
+      if (attr)
+      {
+        char buf[BUFSIZ];
+        zlog_debug ("*******... we have our prefix here %s ",inet_ntop (AF_INET6, &p.u.prefix6, buf, BUFSIZ));
+        prefix_receiver_counter = prefix_receiver_counter +1;
+        struct prefix affected_prefix;
+
+        str2prefix ("100.100.0.0/24", &affected_prefix);
+        ret = circa_update (peer, &affected_prefix, attr, packet->afi, packet->safi, 
+              ZEBRA_ROUTE_BGP, BGP_ROUTE_NORMAL, NULL, NULL, 0);
+      }
+      else
+      {
+        zlog_debug ("*******... we should not have this");
+  //       prefix_in_withdraw_receiver_counter = prefix_in_withdraw_receiver_counter +1;
+  //       if(working_mode==0)
+  // ret = bgp_withdraw (peer, &p, attr, packet->afi, packet->safi, 
+  //         ZEBRA_ROUTE_BGP, BGP_ROUTE_NORMAL, NULL, NULL);
+  //       else
+  //       {
+  //         zlog_debug ("*******... we should not have this");
+  // // ret = circa_withdraw (peer, &p, attr, packet->afi, packet->safi, 
+  // //         ZEBRA_ROUTE_BGP, BGP_ROUTE_NORMAL, NULL, NULL);
+
+  //     }
+
+     }
+
+      /* Address family configuration mismatch or maximum-prefix count
+         overflow. */
+      if (ret < 0)
+  return -1;
+    }
+      // zlog_debug("***fetching prefix list finished here*** \n ");
+      // zlog_debug("***fetching prefix list finished here*** \n ");
+      // zlog_debug("***fetching prefix list finished here*** \n ");
+      // zlog_debug("***fetching prefix list finished here*** \n ");
+      // zlog_debug("***fetching prefix list finished here*** \n ");
+      // zlog_debug("***fetching prefix list finished here*** \n ");
+
+  /* Packet length consistency check. */
+  if (pnt != lim)
+    {
+      plog_err (peer->log,
+                "%s [Error] Update packet error"
+                " (prefix length mismatch with total length)",
+                peer->host);
+      return -1;
+    }
+
+  zlog_debug ("*******... we finished receiving %ld prefixes in fib from %ld",prefix_receiver_counter,peer->as);
+
+
+  return 0;
 }
 
 /* Parse NLRI stream.  Withdraw NLRI is recognized by NULL attr

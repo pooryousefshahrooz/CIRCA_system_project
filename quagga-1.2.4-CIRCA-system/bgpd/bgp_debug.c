@@ -172,8 +172,14 @@ const char *bgp_origin_long_str[] = {"IGP","EGP","incomplete"};
 int
 bgp_dump_attr (struct peer *peer, struct attr *attr, char *buf, size_t size)
 {
+
+
+
   if (! attr)
     return 0;
+
+
+zlog_debug ("next hop is %s ***********\n",inet_ntoa (attr->nexthop));
 
   if (CHECK_FLAG (attr->flag, ATTR_FLAG_BIT (BGP_ATTR_NEXT_HOP)))
     snprintf (buf, size, "nexthop %s", inet_ntoa (attr->nexthop));

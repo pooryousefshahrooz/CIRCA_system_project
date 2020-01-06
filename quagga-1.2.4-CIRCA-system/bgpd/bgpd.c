@@ -228,6 +228,25 @@ long  str_split(char a_str[], const char a_delim,int asked_section)
 
     //return result;
 }
+
+
+/* we return a random attr (including RIB entries) of prefixes affected by an event id for using in fib updating */
+struct attr * get_attr_from_CIRCA_ds(struct time_stamp_ds** head_ref)
+{
+    struct time_stamp_ds* result = NULL;
+    struct time_stamp_ds * temp = (*head_ref);
+    while(temp != NULL)
+    {
+        // zlog_debug("*********** for  %s and %s we are going to check",temp->time_stamp,temp->event_id);
+        if(temp->event_id != NULL)
+        {
+        return temp->attr_value;
+    }
+        temp = temp -> next;
+    }
+    return NULL;
+}
+
 /* we return the attr (including RIB entries) of prefixes affected by event id  */
 struct attr * get_attr_of_event(struct time_stamp_ds** head_ref,char * event_id)
 {
@@ -245,7 +264,23 @@ struct attr * get_attr_of_event(struct time_stamp_ds** head_ref,char * event_id)
     return NULL;
 }
 
-
+int get_next_hop_for_event(struct time_stamp_ds** head_ref,char * event_id)
+{
+    zlog_debug("*********** for  %s we are going to get the number of AS of the next hop ",event_id);
+    struct time_stamp_ds * temp = (*head_ref);
+    int affaected_prefixes = 0;
+    while(temp != NULL)
+    {
+        // zlog_debug("*********** for  %s and %s we are going to check",temp->time_stamp,temp->event_id);
+        if(strcmp(temp->event_id,event_id)==0)
+        {
+        zlog_debug("*********** now we return  peer as  ");
+        return temp->received_from_peer->as;
+    }
+        temp = temp -> next;
+    }
+    return 2;
+}
 
 /* we return number of prefixes affected by event id  */
 int get_number_of_got_affected_prefixes_by_event(struct time_stamp_ds** head_ref,char * event_id)
@@ -272,7 +307,23 @@ int get_number_of_got_affected_prefixes_by_event(struct time_stamp_ds** head_ref
     return affaected_prefixes;
 }
 
+struct update_prefix_list * get_prefix_list_affected_by_event_str_variable(struct time_stamp_ds** head_ref,char * event_id)
 
+{
+    struct time_stamp_ds* result = NULL;
+    struct time_stamp_ds * temp = (*head_ref);
+    while(temp != NULL)
+    {
+        zlog_debug("*********** for  %s and %s we are going to check",temp->event_id,event_id);
+        if(strcmp(temp->event_id,event_id)==0)
+        {
+        zlog_debug("*********** now have the prefixe list, lets return it ");
+        return temp ->saved_prefixes;
+    }
+        temp = temp -> next;
+    }
+    return NULL;
+}
 /* we return a list of prefixes and their next hop  affected by event id  */
 struct event_affected_prefix_list * get_prefix_list_affected_by_event(struct time_stamp_ds** head_ref,char * event_id)
 {

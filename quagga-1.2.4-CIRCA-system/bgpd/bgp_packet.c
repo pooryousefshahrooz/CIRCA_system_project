@@ -450,7 +450,7 @@ bgp_connect_check (struct peer *peer)
 
 /* Parse CIRCA FIB entry packet */
 void
-circa_fib_entry_receive (struct peer *peer, bgp_size_t size)
+circa_fib_entry_list_of_prefixes_receive (struct peer *peer, bgp_size_t size)
 {
   zlog_debug ("we received a circa fib entry message from %s",peer->host);
   long seq_number_part_of_event_id;
@@ -458,7 +458,7 @@ circa_fib_entry_receive (struct peer *peer, bgp_size_t size)
   long seq_number_part_of_time_stamp;
   long router_id_part_of_time_stamp;
   long CIRCA_sub_type;
-
+  long next_hop_AS_number ;
 
   int ret, nlri_ret;
   u_char *end;
@@ -527,7 +527,7 @@ circa_fib_entry_receive (struct peer *peer, bgp_size_t size)
   char * in_event_id[EVENT_ID_LENGTH];
   concat_long_values( seq_number_part_of_event_id,router_id_part_of_event_id ,&in_event_id,EVENT_ID_LENGTH);
 
-
+  next_hop_AS_number = stream_getl (s);
   /* get prefix */
 
 
@@ -545,7 +545,7 @@ circa_fib_entry_receive (struct peer *peer, bgp_size_t size)
 
 //   bgp_attr_parse_ret_t ret = bgp_attr_nexthop (&attr_args);
 
-  zlog_debug ("Receiving FIB entries for RCE_ID: %s from:%ld to:%ld",in_event_id,peer->as,peer->local_as);
+  zlog_debug ("Receiving FIB entries for RCE_ID: %s from:%ld to:%ld and next hop is %ld",in_event_id,peer->as,peer->local_as,next_hop_AS_number);
 }
 
 void circa_fib_dispatching(char * event_id)
@@ -555,12 +555,21 @@ void circa_fib_dispatching(char * event_id)
   {
   // zlog_debug ("2 Sending FIB entries for RCE_ID: %s ",event_id);
   int number_of_affected_prefixes = 0;
+  int AS_number_for_next_hop = get_next_hop_for_event(&time_stamp_ds_head,event_id);
   // zlog_debug ("3 Sending FIB entries for RCE_ID: %s ",event_id);
   number_of_affected_prefixes = get_number_of_got_affected_prefixes_by_event(&time_stamp_ds_head,event_id);
   zlog_debug ("Sending FIB entries for RCE_ID: %s and for %ld prefixes",event_id,number_of_affected_prefixes);
   struct event_affected_prefix_list * list_of_all_prefixes  ;
   list_of_all_prefixes = get_prefix_list_affected_by_event(&time_stamp_ds_head,event_id);
+  struct  update_prefix_list * list_of_affected_prefixes_str_version;
+  list_of_affected_prefixes_str_version = get_prefix_list_affected_by_event_str_variable(&time_stamp_ds_head,event_id);
   zlog_debug ("****  we got the prefix list calling get_prefix_list_affected_by_event for RCE_ID: %s",event_id);
+  
+  if(list_of_affected_prefixes_str_version !=NULL)
+    zlog_debug ("****  The prefix list for RCE_ID: %s in str version is not null",event_id);
+
+  if(list_of_affected_prefixes_str_version ==NULL)
+    zlog_debug ("****  The prefix list for RCE_ID: %s in str version is null",event_id);
   if(list_of_all_prefixes ==NULL)
     zlog_debug ("****  The prefix list for RCE_ID: %s is null",event_id);
   else
@@ -580,9 +589,21 @@ void circa_fib_dispatching(char * event_id)
   }
 
   if (list_of_all_prefixes!= NULL)
-    circa_msg_fib_entry_send (avatar,event_id,list_of_all_prefixes,attr2);
+  {
+    if (AS_number_for_next_hop ==10)
+      AS_number_for_next_hop = 2;
+    if (AS_number_for_next_hop ==20)
+      AS_number_for_next_hop = 1;  
+    if (AS_number_for_next_hop ==30)
+      AS_number_for_next_hop = 3;  
 
-    //circa_msg_fib_entry_send_simple(avatar,event_id);
+    zlog_debug ("We are sending %d as next AS number in circa_msg_fib_entry_send function to be sent ",AS_number_for_next_hop);
+    circa_msg_fib_entry_send (avatar,event_id,list_of_affected_prefixes_str_version,list_of_all_prefixes,&attr2,AS_number_for_next_hop);
+  }
+
+    //circa_fib_entry_packet(avatar,event_id,list_of_all_prefixes,attr2);
+    
+   // circa_msg_fib_entry_send_simple(avatar,event_id);
   }
   // if (avatar)
   // {
@@ -611,25 +632,25 @@ void circa_fib_dispatching(char * event_id)
 }
 
 
-
+//shahrooz2
 /* Make a CIRCA_MSG_FIB_ENTRY packet which include event id, next hop, ASPATH and a list of prefixes */
 void
-circa_msg_fib_entry_send (struct peer *peer,char * event_id,struct event_affected_prefix_list * my_sending_prefix_list, struct attr * attr)
+circa_msg_fib_entry_send (struct peer *peer,char * event_id,struct update_prefix_list * update_prefix_list_str_values,struct event_affected_prefix_list * my_sending_prefix_list, struct attr * attr,int next_hop_AS_number)
 {
-  zlog_debug ("outgoing CIRCA MSG FIB ENTRY to ground message");
+  //zlog_debug ("outgoing CIRCA MSG FIB ENTRY to ground message as next hop as %d",next_hop_AS_number);
   //zlog_debug ("outgoing CIRCA MSG FIB ENTRY to ground message to %s ",peer->host);
-  // if (peer->status == Established)
-  // {
+  if (avatar)
+  {
   // zlog_debug ("2 outgoing CIRCA MSG FIB ENTRY to ground message to %s ",peer->host);
   // }
 
 
-  zlog_debug ("***************0*********\n");
+  //zlog_debug ("***************0*********\n");
   //zlog_debug ("***********the ASPATH is %s *************\n",attr->aspath->str);
-  zlog_debug ("************************\n");
+  //zlog_debug ("************************\n");
 
-  afi_t afi;
-  safi_t safi;
+  afi_t afi= AFI_IP;
+  safi_t safi = SAFI_UNICAST;
 
   struct stream *s;
   struct stream *snlri;
@@ -644,12 +665,13 @@ circa_msg_fib_entry_send (struct peer *peer,char * event_id,struct event_affecte
   int space_needed = 0;
   size_t mpattrlen_pos = 0;
   size_t mpattr_pos = 0;
+  size_t mpattr_pos2 = 0;
 
   s = peer->work;
   stream_reset (s);
   snlri = peer->scratch;
   stream_reset (snlri);
-  struct prefix *next_prefix;
+  struct prefix next_prefix;
   struct bgp *bgp;
     struct prefix_rd *prd = NULL;
     u_char *tag = NULL;
@@ -662,42 +684,138 @@ circa_msg_fib_entry_send (struct peer *peer,char * event_id,struct event_affecte
 
     struct prefix p;
     char buf[SU_ADDRSTRLEN];
+    zlog_debug (" lets generate affected prefix!");
   if (afi == AFI_IP)
-    str2prefix ("0.0.0.0/0", &p);
+    str2prefix ("100.100.0.0/0", &p);
   else 
-    str2prefix ("::/0", &p);
+    str2prefix ("100.100.0.0/0", &p);
 
-    //zlog_debug (" we stream_get_endp line 673 and from is %s and prefix is %s  \n",from->host,inet_ntop(next_prefix.family, &(next_prefix.u.prefix), buf, INET6_BUFSIZ));
+
+  struct prefix affected_prefix;
+
+  str2prefix ("100.100.0.0/24", &affected_prefix);
+  // zlog_debug (" we generated affected prefix!!!!!!!!!  %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
+
+  // zlog_debug (" we generated affected prefix!!!!!!!!!  %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
+
+  // struct bgp_info *new;
+  // struct bgp_info info;
+  struct attr *attr_simple;
+  struct attr *attr_new;
+  int ret;
+
+  // assert (bgp_static);
+  // if (!bgp_static)
+  //   return;
+
+  // zlog_debug ("***********we are going to set attr*************\n");
+
+  //bgp_attr_default_set (&attr_simple, BGP_ORIGIN_IGP);
+  bgp_attr_default_set (&attr_simple, BGP_ORIGIN_IGP);
+
+  //attr_simple->origin = BGP_ORIGIN_EGP;
+  // attr_simple->flag |= ATTR_FLAG_BIT (BGP_ATTR_ORIGIN);
+
+  // self_aspath =  aspath_str2aspath("3 1");
+  // attr_simple->aspath = self_aspath;
+  // attr_simple->flag |= ATTR_FLAG_BIT (BGP_ATTR_AS_PATH);
+
+  // attr_simple->med = 30;
+  // attr_simple->flag |= ATTR_FLAG_BIT (BGP_ATTR_MULTI_EXIT_DISC);
+  // // attr_simple->nexthop = peer->nexthop.v4;
+  // // attr_simple->flag |= ATTR_FLAG_BIT (BGP_ATTR_NEXT_HOP);
+
+  // in_addr_t nexthop_h, nexthop_n;
+  // nexthop_n = peer->nexthop.v4.s_addr;
+  // nexthop_h = ntohl (nexthop_n);
+  // attr_simple->nexthop.s_addr = nexthop_n;
+  // attr_simple->flag |= ATTR_FLAG_BIT (BGP_ATTR_NEXT_HOP);
+
+
+
+  //attr_new = bgp_attr_intern (&attr);
+
+
+
+  // zlog_debug (" we set all attributes of attr line 710  \n");
     
-    bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
-    self_aspath = self_attr.aspath;
-    self_attr.local_pref = bgp->default_local_pref;
-    memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+  /* create and fill attr data structure */
+  //bgp_attr_default_set (&attr, BGP_ORIGIN_IGP);
+  // aspath = attr.aspath;
+  // attr.local_pref = bgp->default_local_pref;
+  // memcpy (&attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
 
-   zlog_debug (" 627 we got next prefix and updated the list \n");
-    while (my_sending_prefix_list!=NULL)
-    {
-       zlog_debug (" 630 we got next prefix and updated the list \n");
-      next_prefix = my_sending_prefix_list ->next;
-       zlog_debug (" 632 we got next prefix and updated the list \n");
-      my_sending_prefix_list = my_sending_prefix_list ->next;
-      zlog_debug (" 634 we got next prefix and updated the list \n");
 
+  //bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
+  //self_aspath = self_attr.aspath;
+  //self_attr.local_pref = bgp->default_local_pref;
+  //memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+
+
+  // memset (&self_attr, 0, sizeof (struct attr));
+  // self_attr.extra = &self_attr;
+
+  // /* Origin attribute. */
+  //memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+  //in_addr_t nexthop_h, nexthop_n;
+  //nexthop_n = stream_get_ipv4 (peer->ibuf);
+  //&self_attr.nexthop.s_addr = peer->nexthop.v4.s_addr;
+  //bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
+
+  //attr.origin = origin;
+  //self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_ORIGIN);
+  /* AS path attribute. */
+  //self_aspath =  aspath_str2aspath("3 1");
+  //self_aspath = aspath_add_seq_n (self_aspath, 3, 1);
+  //self_attr.aspath = self_aspath;
+  // self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_AS_PATH);
+  /* Next hop attribute.  */
+  //self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_NEXT_HOP);
+  //self_attr.weight = BGP_ATTR_DEFAULT_WEIGHT;
+
+  //     char attrstr[BUFSIZ];
+  //     attrstr[0] = '\0';
+  //     int ret= bgp_dump_attr (peer, &attr, attrstr, BUFSIZ);
+  //     if (ret)
+  //     {
+  // zlog_debug ( "%s we have attr as: rcvd UPDATE w/ attr: %s from %ld",
+  //       peer->host, attrstr,peer->as);
+  //     }
+
+
+
+    // bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
+    // self_aspath = self_attr.aspath;
+    // self_attr.local_pref = bgp->default_local_pref;
+    //memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+    // self_attr.med = 30;
+    // //self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_MULTI_EXIT_DISC);
+    // self_attr.extra->tag = NULL;
+    int prefix_counter = 0;
+   // zlog_debug ("we created the next hop of created attr variable \n");
+    // while (update_prefix_list_str_values!=NULL)
+    // {   
+      // zlog_debug ("***beginning of the loop");
+      //next_prefix = update_prefix_list_str_values ->next;
+      //str2prefix ("100.1.1.0/24", &affected_prefix);
+  // zlog_debug (" Generated affected prefix in the loop!!!!!!!!!  %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
+
+      //update_prefix_list_str_values = update_prefix_list_str_values ->next;
+  // zlog_debug (" Generated affected prefix in the loop!!!!!!!!!  %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
 
       /* If packet is empty, set attribute. */
       if (stream_empty (s))
   {
-    zlog_debug (" 640 we got next prefix and updated the list \n");
     /* 1: Write the BGP message header - 16 bytes marker, 2 bytes length,
      * one byte message type.
      */
     s = stream_new (BGP_MAX_PACKET_SIZE);
     bgp_packet_set_marker (s, CIRCA_MSG_FIB_ENTRY);
-    zlog_debug (" we got bgp_packet_set_marker line 648 \n");
+    // zlog_debug (" we set bgp_packet_set_marker line 648 \n");
 
       /* 2: Write GRC subcode 2 for GRC message*/
      stream_putl (s, CIRCA_MSG_FIB_ENTRY);
-  zlog_debug ("We wrote CIRCA_MSG_FIB_ENTRY sub code to the streem");
+  // zlog_debug ("We wrote CIRCA_MSG_FIB_ENTRY sub code to the streem");
       /* 2: Write seq  number of event id  */
       char * backup_event_id[EVENT_ID_LENGTH];
       strncpy(backup_event_id,event_id,EVENT_ID_LENGTH);
@@ -707,67 +825,113 @@ circa_msg_fib_entry_send (struct peer *peer,char * event_id,struct event_affecte
      stream_putl (s, seq_number_sec);
       /* 2: Write seq  number2 as timestamp */
      stream_putl (s, router_id_value);
+     if (peer->as ==3)
+      stream_putl (s, 2);
+    if (peer->as ==2)
+      stream_putl (s, 1);
+    if (peer->as ==4)
+      stream_putl (s, 3);
+    if (peer->as ==1)
+      stream_putl (s, 1);
 
-    zlog_debug (" we set all event id line 663 \n");
+    stream_putl (s, 1);
+    // zlog_debug (" we set all event id line 663 \n");
 
 
-        /* 4: if there is MP_REACH_NLRI attribute, that should be the first
+
+    /* 2: withdrawn routes length */
+    stream_putw (s, 0);
+
+    /* 3: total attributes length - attrlen_pos stores the position */
+    attrlen_pos = stream_get_endp (s);
+    stream_putw (s, 0);
+
+    /* 4: if there is MP_REACH_NLRI attribute, that should be the first
      * attribute, according to draft-ietf-idr-error-handling. Save the
      * position.
      */
     mpattr_pos = stream_get_endp(s);
-    
+
+  
+    // zlog_debug (" before adding attr the mpattr_pos is %d and total_attr_len is %d \n",mpattr_pos,total_attr_len);
     /* 5: Encode all the attributes, except MP_REACH_NLRI attr. */
     //total_attr_len = bgp_packet_attribute (NULL, peer, s, attr, &p, afi, safi, from, NULL, NULL);
-    //total_attr_len = bgp_packet_attribute (NULL, peer, s, &self_attr, &p, afi, safi, from, NULL, NULL);// working
-    total_attr_len = bgp_packet_attribute (NULL, peer, s, &self_attr, &next_prefix, afi, safi, from, NULL, NULL);// working
-    //total_attr_len = bgp_packet_attribute (NULL, peer, s, attr, &next_prefix, afi, safi, from, NULL, NULL);// not working
+    str2prefix ("100.100.0.0/24", &affected_prefix);
+    //total_attr_len = circa_packet_attribute (NULL, peer, s, &attr_simple, affected_prefix, AFI_IP, SAFI_UNICAST, from, NULL, NULL);// working
+   // total_attr_len = bgp_packet_attribute (NULL, peer, s, &self_attr, &p, afi, safi, from, NULL, NULL);// last used and 
+        /* 5: Encode all the attributes, except MP_REACH_NLRI attr. */
+    // if (afi == AFI_IP && safi == SAFI_UNICAST)
+    //   zlog_debug ("we will add prefix because  afi == AFI_IP && safi == SAFI_UNICAST");
+    // zlog_debug ("we checked if we will add prefix because  afi == AFI_IP && safi == SAFI_UNICAST");
+    //total_attr_len = bgp_packet_attribute (NULL, peer, s,&attr_simple,((afi == AFI_IP && safi == SAFI_UNICAST) ? &p : NULL),afi, safi,from, prd, tag);
+  //zlog_debug (" Used affected prefix in the loop!!!!!!!!! with p is  %s  \n",inet_ntop(p.family, &(p.u.prefix), buf, INET6_BUFSIZ));
+    str2prefix ("100.100.0.0/24", &affected_prefix);
 
-     zlog_debug (" we did set attr line 683 \n");
+    total_attr_len = circa_packet_attribute (NULL, peer, s, &attr_simple, &next_prefix, afi, safi, from, NULL, NULL,next_hop_AS_number);// not working
+     mpattr_pos2 = stream_get_endp(s);
+     // zlog_debug ("we added attr and the mpattr_pos2 now is  %d and total_attr_len is %d \n",mpattr_pos2,total_attr_len);
 
     }
-      if (afi == AFI_IP && safi == SAFI_UNICAST)
+      if (1==1)
   //stream_put_prefix (s, &rn->p);
-  stream_put_prefix (s, next_prefix);
-      else
   {
-    /* Encode the prefix in MP_REACH_NLRI attribute */
-    zlog_debug (" Encode the prefix in MP_REACH_NLRI line 713 \n");
-    struct prefix_rd *prd = NULL;
-    u_char *tag = NULL;
-    if (stream_empty(snlri))
-      mpattrlen_pos = bgp_packet_mpattr_start(snlri, afi, safi,
-                &self_attr);
-    zlog_debug (" Encode the prefix in MP_REACH_NLRI line 719 \n");
-    bgp_packet_mpattr_prefix(snlri, afi, safi, &next_prefix, prd, tag);
-    zlog_debug (" bgp_packet_mpattr_prefix line 706 \n");
-
+    str2prefix ("100.100.0.0/24", &affected_prefix);
+    stream_put_prefix (s, &affected_prefix);
+    zlog_debug ("************ we added our first prefix to the stream  ************");
   }
-      //zlog_debug ("We added prefix  %s to the fib packet\n",inet_ntop(next_prefix->family, &(next_prefix->u.prefix), buf, SU_ADDRSTRLEN));
+  //     else
+  // {
+  //   /* Encode the prefix in MP_REACH_NLRI attribute */
+  //   zlog_debug (" Encode the prefix in MP_REACH_NLRI line 713 \n");
+  //   struct prefix_rd *prd = NULL;
+  //   u_char *tag = NULL;
+  //   if (stream_empty(snlri))
+  //     mpattrlen_pos = bgp_packet_mpattr_start(snlri, afi, safi,
+  //               &self_attr);
+  //   zlog_debug (" Encode the prefix in MP_REACH_NLRI line 719 \n");
+  //   bgp_packet_mpattr_prefix(snlri, afi, safi, &p, prd, tag);
+  //   zlog_debug (" bgp_packet_mpattr_prefix line 706 \n");
 
-    }
+  // }
 
+  // zlog_debug (" used affected prefix in loop was   %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
+  //str2prefix ("100.1.1.0/24", &affected_prefix);
+  // zlog_debug (" used affected prefix in loop was   %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
+
+     //}
+// zlog_debug (" ******** We are out of while loop ********* \n");
   if (! stream_empty (s))
     {
       if (!stream_empty(snlri))
   {
-    bgp_packet_mpattr_end(snlri, mpattrlen_pos);
+    //bgp_packet_mpattr_end(snlri, mpattrlen_pos);
     total_attr_len += stream_get_endp(snlri);
+    // zlog_debug (" ******** now after bgp_packet_mpattr_end the total_attr_len is %d ********* \n",total_attr_len);
   }
       /* set the total attribute length correctly */
+  // zlog_debug (" ******** set the total attribute length correctly attrlen_pos is %d , total_attr_len is %d ********* \n",attrlen_pos,total_attr_len);
       stream_putw_at (s, attrlen_pos, total_attr_len);
       if (!stream_empty(snlri))
-  packet = stream_dupcat(s, snlri, mpattr_pos);
+      {
+      // zlog_debug (" ******** we added packet = stream_dupcat(s, snlri, mpattr_pos); ********* \n");
+      packet = stream_dupcat(s, snlri, mpattr_pos);
+      }
       else
-  packet = stream_dup (s);
+      {
+      // zlog_debug (" ******** we added packet = stream_dup (s);; ********* \n");
+      packet = stream_dup (s);
+    }
       bgp_packet_set_size (packet);
       bgp_packet_add (peer, packet);
       BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
       stream_reset (s);
       stream_reset (snlri);
+      zlog_debug ("we are at the point of returning packet to be sent down to %s \n",peer->host);
       return packet;
     }
+  zlog_debug ("we are at the point of returning NULL packet to be sent down to %s \n",peer->host);
   return NULL;
+}
   }
 
   //     if (afi == AFI_IP && safi == SAFI_UNICAST)
@@ -991,8 +1155,8 @@ circa_msg_fib_entry_send_simple (struct peer *peer,char * event_id)
     /* adding next hop */
    // if (attr->nexthop.s_addr == 0)
    //    stream_put_ipv4 (s, peer->nexthop.v4.s_addr);
-   //  else
-   //    stream_put_ipv4 (s, attr->nexthop.s_addr);
+    // else
+    //   stream_put_ipv4 (s, attr->nexthop.s_addr);
    //  /* adding aspath */
    //  size_t aspath_sizep;
    //  struct aspath *aspath;
@@ -1124,6 +1288,178 @@ circa_grc_msg_send (struct peer *peer,uint32_t grc_sub_code,uint32_t *target_rou
     zlog_debug ("We are at the returning packet point for sending CIRCA GRC MSG with event id %s to %s",global_event_id, peer->host);    
     return packet;
   }
+}
+
+
+/* Make CIRCA FIB packet for sending down next hop for a list of prefixes */
+//shahrooz
+void
+circa_fib_entry_packet (struct peer * peer,char * event_id,struct event_affected_prefix_list * my_sending_prefix_list, struct attr * attr)
+{
+  zlog_debug ("we are sending down the fib entry for a list of prefixes to %ld" ,peer->as);
+
+  if(avatar)
+  {
+  // zlog_debug ("!!!!!!!!!!!!!!!!!!!!!!!!!!! We are at the bgp_update_packet to send an update to %s", peer->host);    
+  afi_t afi;
+  safi_t safi;
+  struct stream *s;
+  struct stream *snlri;
+  struct bgp_adj_out *adj;
+  struct bgp_advertise *adv;
+  struct stream *packet;
+  struct bgp_node *rn = NULL;
+  struct bgp_info *binfo = NULL;
+  bgp_size_t total_attr_len = 0;
+  unsigned long attrlen_pos = 0;
+  int space_remaining = 0;
+  int space_needed = 0;
+  size_t mpattrlen_pos = 0;
+  size_t mpattr_pos = 0;
+  char buf[SU_ADDRSTRLEN];
+  s = peer->work;
+  stream_reset (s);
+  snlri = peer->scratch;
+  stream_reset (snlri);
+  long next_hop_AS_number;
+  struct prefix *next_prefix;
+  struct bgp *bgp;
+  struct attr self_attr;
+  struct aspath *self_aspath;
+  bgp_attr_default_set (&self_attr, BGP_ORIGIN_IGP);
+  self_aspath = self_attr.aspath;
+  self_attr.local_pref = bgp->default_local_pref;
+  memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
+  self_attr.med = 30;
+  self_attr.flag |= ATTR_FLAG_BIT (BGP_ATTR_MULTI_EXIT_DISC);
+  self_attr.extra->tag = NULL;
+  int prefix_counter = 0;
+  /* we define a peer as the sender of the update message we are sending. 
+  If we are the owner of the prefix or we have not received the prefix durin this root cause event,
+   we will set the sender to NULL */
+  if(peer->as == 4)
+    next_hop_AS_number = 3;
+  if(peer->as == 3)
+    next_hop_AS_number = 2;
+  if(peer->as == 2)
+    next_hop_AS_number = 1;
+  if(peer->as == 1)
+    next_hop_AS_number = 1;
+
+
+  while (my_sending_prefix_list !=NULL)
+    {
+      prefix_counter = prefix_counter+1;
+      next_prefix = my_sending_prefix_list->next;
+      my_sending_prefix_list = my_sending_prefix_list ->next;
+      /* If packet is empty, set attribute. */
+      if (stream_empty (s))
+  {
+    struct prefix_rd *prd = NULL;
+    u_char *tag = NULL;
+    struct peer *from = NULL;
+
+    
+    /* 1: Write the BGP message header - 16 bytes marker, 2 bytes length,
+     * one byte message type.
+     */
+    bgp_packet_set_marker (s, CIRCA_MSG_FIB_ENTRY);
+    zlog_debug (" we got bgp_packet_set_marker line 648 \n");
+    /* 2: Write GRC subcode 2 for GRC message*/
+    stream_putl (s, CIRCA_MSG_FIB_ENTRY);
+    zlog_debug ("We wrote CIRCA_MSG_FIB_ENTRY sub code to the streem");
+    /* 2: Write seq  number of event id  */
+    char * backup_event_id[EVENT_ID_LENGTH];
+    strncpy(backup_event_id,event_id,EVENT_ID_LENGTH);
+    long router_id_value = str_split(backup_event_id, ',',1);
+    long seq_number_sec = str_split(backup_event_id, ',',0);
+    /* 2: Write seq  number */
+    stream_putl (s, seq_number_sec);
+    /* 2: Write seq  number2 as timestamp */
+    stream_putl (s, router_id_value);
+    stream_putl (s, next_hop_AS_number);
+    stream_putl (s, next_hop_AS_number);
+
+    /* 2: withdrawn routes length */
+    stream_putw (s, 0);
+
+    /* 3: total attributes length - attrlen_pos stores the position */
+    attrlen_pos = stream_get_endp (s);
+    stream_putw (s, 0);
+
+    /* 4: if there is MP_REACH_NLRI attribute, that should be the first
+     * attribute, according to draft-ietf-idr-error-handling. Save the
+     * position.
+     */
+    mpattr_pos = stream_get_endp(s);
+
+    /* 5: Encode all the attributes, except MP_REACH_NLRI attr. */
+    total_attr_len = bgp_packet_attribute (NULL, peer, s, &self_attr, &next_prefix, afi, safi, from, NULL, NULL);// working 
+
+  }
+
+      if (afi == AFI_IP && safi == SAFI_UNICAST)
+  stream_put_prefix (s, &next_prefix);
+      else
+  {
+    /* Encode the prefix in MP_REACH_NLRI attribute */
+    struct prefix_rd *prd = NULL;
+    u_char *tag = NULL;
+
+
+
+    if (stream_empty(snlri))
+      mpattrlen_pos = bgp_packet_mpattr_start(snlri, afi, safi,
+                &self_attr);
+    bgp_packet_mpattr_prefix(snlri, afi, safi, &next_prefix, prd, tag);
+  }
+
+    if (BGP_DEBUG (update, UPDATE_OUT))
+      {
+        char buf[INET6_BUFSIZ];
+        zlog_debug ("************************* we added prefix  in fib entry %s/%d ",inet_ntop (next_prefix->family, &(next_prefix->u.prefix), buf, INET6_BUFSIZ),next_prefix->prefixlen);
+        // zlog (peer->log, LOG_DEBUG, "%s added prefix %s/%d",
+        //       peer->host,
+        //       inet_ntop (rn->p.family, &(rn->p.u.prefix), buf, INET6_BUFSIZ),
+        //       rn->p.prefixlen);
+      }
+
+      /* Synchnorize attribute.  */
+  //     if (adj->attr)
+  // bgp_attr_unintern (&adj->attr);
+  //     else
+  // peer->scount[afi][safi]++;
+
+  //     adj->attr = bgp_attr_intern (adv->baa->attr);
+
+  //     adv = bgp_advertise_clean (peer, adj, afi, safi);
+    }
+
+  if (! stream_empty (s))
+    {
+      if (!stream_empty(snlri))
+  {
+    bgp_packet_mpattr_end(snlri, mpattrlen_pos);
+    total_attr_len += stream_get_endp(snlri);
+  }
+
+      /* set the total attribute length correctly */
+      stream_putw_at (s, attrlen_pos, total_attr_len);
+
+      if (!stream_empty(snlri))
+  packet = stream_dupcat(s, snlri, mpattr_pos);
+      else
+  packet = stream_dup (s);
+      bgp_packet_set_size (packet);
+      bgp_packet_add (peer, packet);
+      BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
+      stream_reset (s);
+      stream_reset (snlri);
+      zlog_debug ("we finished building the fib entry message including %ld prefixes to %ld" ,prefix_counter,peer->as);
+      return packet;
+    }
+  }
+  return NULL;
 }
 
 
@@ -1390,9 +1726,13 @@ circa_update_packet (struct peer *peer, afi_t afi, safi_t safi)
   }
 
       if (afi == AFI_IP && safi == SAFI_UNICAST)
+      {
+        zlog_debug("we are adding the prefix %s  in the afi == AFI_IP && safi == SAFI_UNICAST if condition",inet_ntop (rn->p.family, &(rn->p.u.prefix), buf, INET6_BUFSIZ));
   stream_put_prefix (s, &rn->p);
+}
       else
   {
+    zlog_debug("we are in else of  in the afi == AFI_IP && safi == SAFI_UNICAST if condition",inet_ntop (rn->p.family, &(rn->p.u.prefix), buf, INET6_BUFSIZ));
     /* Encode the prefix in MP_REACH_NLRI attribute */
     struct prefix_rd *prd = NULL;
     u_char *tag = NULL;
@@ -1436,15 +1776,22 @@ circa_update_packet (struct peer *peer, afi_t afi, safi_t safi)
   {
     bgp_packet_mpattr_end(snlri, mpattrlen_pos);
     total_attr_len += stream_get_endp(snlri);
+    zlog_debug ("**** total_attr_len after bgp_packet_mpattr_end is %d",total_attr_len);
   }
-
+      zlog_debug ("**** set the total attribute length correctly and attrlen_pos is %d and total_attr_len is %d",attrlen_pos,total_attr_len);
       /* set the total attribute length correctly */
       stream_putw_at (s, attrlen_pos, total_attr_len);
 
       if (!stream_empty(snlri))
-  packet = stream_dupcat(s, snlri, mpattr_pos);
+      {
+      zlog_debug (" ******** we added packet = stream_dupcat(s, snlri, mpattr_pos); for CIRCA UPDATE ********* \n");
+      packet = stream_dupcat(s, snlri, mpattr_pos);
+      }
       else
-  packet = stream_dup (s);
+      {
+      zlog_debug (" ******** we added packet = stream_dup (s);; ********* for CIRCA UPDATE \n");
+      packet = stream_dup (s);
+    }
       bgp_packet_set_size (packet);
       bgp_packet_add (peer, packet);
       BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
@@ -3539,6 +3886,25 @@ bgp_open_receive (struct peer *peer, bgp_size_t size)
 
 /* Frontend for NLRI parsing, to fan-out to AFI/SAFI specific parsers */
 int
+circa_nlri_parse (struct peer *peer, struct attr *attr, struct bgp_nlri *packet)
+{
+
+  switch (packet->safi)
+    {
+      case SAFI_UNICAST:
+      case SAFI_MULTICAST:
+        return circa_nlri_parse_ip (peer, attr, packet);
+      case SAFI_MPLS_VPN:
+      case SAFI_MPLS_LABELED_VPN:
+        return bgp_nlri_parse_vpn (peer, attr, packet);
+      case SAFI_ENCAP:
+        return bgp_nlri_parse_encap (peer, attr, packet);
+    }
+  return -1;
+}
+
+/* Frontend for NLRI parsing, to fan-out to AFI/SAFI specific parsers */
+int
 bgp_nlri_parse (struct peer *peer, struct attr *attr, struct bgp_nlri *packet)
 {
   switch (packet->safi)
@@ -3930,7 +4296,19 @@ circa_dissemination_receive (struct peer *peer, bgp_size_t size)
          }
     }
     else
-        zlog_debug (" We have not sent event %s to any neighbor!!!",event_id);
+    {
+        zlog_debug (" We have not sent event %s to any neighbor!!! but we will send next hop to ground",event_id);
+        if(avatar && peer->as==20 && peer->local_as==30)
+        {
+          zlog_debug ("We are sending 1 as next AS number in circa_msg_fib_entry_send function to be sent after receiving dessimination");
+          circa_msg_fib_entry_send (avatar,event_id,NULL,NULL,NULL,1);
+        }
+      if(avatar && peer->as==10 && peer->local_as==30)
+        {
+          zlog_debug ("We are sending 2 as next AS number in circa_msg_fib_entry_send function to be sent after receiving dessimination");
+          circa_msg_fib_entry_send (avatar,event_id,NULL,NULL,NULL,2);
+        }
+    }
 
   }
   else
@@ -4013,20 +4391,15 @@ circa_dissemination_send (struct peer *peer,char  *passed_root_cause_event_id)
 
 }
 }
-
-
-
-/* Parse BGP Update packet and make attribute object. */
+// pouryousef
+/* Parse CIRCA received fib entry for a list of prefixes and update the fib entry for them in ground. */
 int
-circa_update_receive (struct peer *peer, int size)
+circa_fib_entry_receive (struct peer *peer, int size)
 {
 
-  zlog_debug ("this is CIRCA CBGP message from %s ",peer->host);
+  zlog_debug (" *********************.     We received a CIRCA FIB message from %s  ***********",peer->host);
 
-  if(3==peer->as)
-  {zlog_debug ("We do not accept any CIRCA CBGP message from %s and we will update FIB entry to it",peer->host);
-    return -1;
-  }
+
   long seq_number_part_of_event_id;
   long router_id_part_of_event_id;
   long seq_number_part_of_time_stamp;
@@ -4036,6 +4409,286 @@ circa_update_receive (struct peer *peer, int size)
   received_packet_is_withdraw = false;
 
 
+  int ret, nlri_ret;
+  u_char *end;
+  struct stream *s;
+  struct attr attr;
+  struct attr_extra extra;
+  bgp_size_t attribute_len;
+  bgp_size_t update_len;
+  bgp_size_t withdraw_len;
+  int i;
+  
+  enum NLRI_TYPES {
+    NLRI_UPDATE,
+    NLRI_WITHDRAW,
+    NLRI_MP_UPDATE,
+    NLRI_MP_WITHDRAW,
+    NLRI_TYPE_MAX,
+  };
+  struct bgp_nlri nlris[NLRI_TYPE_MAX];
+
+  /* Status must be Established. */
+  if (peer->status != Established) 
+    {
+      zlog_err ("%s [FSM] FIB packet received under status %s",
+    peer->host, LOOKUP (bgp_status_msg, peer->status));
+      bgp_notify_send (peer, BGP_NOTIFY_FSM_ERR, 0);
+      return -1;
+    }
+
+  /* Set initial values. */
+  memset (&attr, 0, sizeof (struct attr));
+  memset (&extra, 0, sizeof (struct attr_extra));
+  memset (&nlris, 0, sizeof nlris);
+
+  attr.extra = &extra;
+
+  s = peer->ibuf;
+  end = stream_pnt (s) + size;
+
+  /* RFC1771 6.3 If the Unfeasible Routes Length or Total Attribute
+     Length is too large (i.e., if Unfeasible Routes Length + Total
+     Attribute Length + 23 exceeds the message Length), then the Error
+     Subcode is set to Malformed Attribute List.  */
+  if (stream_pnt (s) + 2 > end)
+    {
+      zlog_err ("%s [Error] FIB packet error"
+    " (packet length is short for unfeasible length)",
+    peer->host);
+      bgp_notify_send (peer, BGP_NOTIFY_UPDATE_ERR, 
+           BGP_NOTIFY_UPDATE_MAL_ATTR);
+      return -1;
+    }
+    /* get CIRCA related fields */
+    CIRCA_sub_type = stream_getl (s);
+    zlog_debug ("this is CIRCA_sub_type %ld from %s",CIRCA_sub_type,peer->host);
+
+
+    /* get event id sequence number section */
+    seq_number_part_of_event_id = stream_getl (s);
+    zlog_debug ("this is seq_number_part_of_event_id %ld from %s",seq_number_part_of_event_id,peer->host);
+
+    /* get event id router id section */
+    router_id_part_of_event_id = stream_getl (s);
+ zlog_debug ("this is router_id_part_of_event_id %ld from %s",router_id_part_of_event_id,peer->host);
+
+    /* get time stamp sequence number section */
+    seq_number_part_of_time_stamp = stream_getl (s);
+    zlog_debug ("this is seq_number_part_of_time_stamp %ld from %s",seq_number_part_of_time_stamp,peer->host);
+
+    /* get time stamp router id section */
+    router_id_part_of_time_stamp = stream_getl (s);
+ zlog_debug ("this is router_id_part_of_time_stamp %ld from %s",router_id_part_of_time_stamp,peer->host);
+
+  /* Unfeasible Route Length. */
+  withdraw_len = stream_getw (s);
+
+  /* Unfeasible Route Length check. */
+  if (stream_pnt (s) + withdraw_len > end)
+    {
+      zlog_err ("%s [Error] FIB packet error"
+    " (packet unfeasible length overflow %d)",
+    peer->host, withdraw_len);
+      bgp_notify_send (peer, BGP_NOTIFY_UPDATE_ERR, 
+           BGP_NOTIFY_UPDATE_MAL_ATTR);
+      return -1;
+    }
+
+  /* Unfeasible Route packet format check. */
+  if (withdraw_len > 0)
+    {
+      nlris[NLRI_WITHDRAW].afi = AFI_IP;
+      nlris[NLRI_WITHDRAW].safi = SAFI_UNICAST;
+      nlris[NLRI_WITHDRAW].nlri = stream_pnt (s);
+      nlris[NLRI_WITHDRAW].length = withdraw_len;
+      
+      if (BGP_DEBUG (packet, PACKET_RECV))
+  zlog_debug ("%s [FIB:RECV] Unfeasible NLRI received", peer->host);
+
+      stream_forward_getp (s, withdraw_len);
+    }
+  
+  /* Attribute total length check. */
+  if (stream_pnt (s) + 2 > end)
+    {
+      zlog_warn ("%s [Error] Packet Error"
+     " (fib packet is short for attribute length)",
+     peer->host);
+      bgp_notify_send (peer, BGP_NOTIFY_UPDATE_ERR, 
+           BGP_NOTIFY_UPDATE_MAL_ATTR);
+      return -1;
+    }
+
+  /* Fetch attribute total length. */
+  attribute_len = stream_getw (s);
+
+  /* Attribute length check. */
+  if (stream_pnt (s) + attribute_len > end)
+    {
+      zlog_warn ("%s [Error] Packet Error"
+     " (fib packet attribute length overflow %d)",
+     peer->host, attribute_len);
+      bgp_notify_send (peer, BGP_NOTIFY_UPDATE_ERR, 
+           BGP_NOTIFY_UPDATE_MAL_ATTR);
+      return -1;
+    }
+  
+  /* Certain attribute parsing errors should not be considered bad enough
+   * to reset the session for, most particularly any partial/optional
+   * attributes that have 'tunneled' over speakers that don't understand
+   * them. Instead we withdraw only the prefix concerned.
+   * 
+   * Complicates the flow a little though..
+   */
+  bgp_attr_parse_ret_t attr_parse_ret = BGP_ATTR_PARSE_PROCEED;
+  /* This define morphs the update case into a withdraw when lower levels
+   * have signalled an error condition where this is best.
+   */
+#define NLRI_ATTR_ARG (attr_parse_ret != BGP_ATTR_PARSE_WITHDRAW ? &attr : NULL)
+
+  /* Parse attribute when it exists. */
+  if (attribute_len)
+    {
+      zlog_debug ("*******... lets call bgp_attr_parse for received FIB entry message from %s and stream_pnt (s) is %ld ",peer->host,stream_pnt (s));
+      attr_parse_ret = circa_fib_attr_parse (peer, &attr, attribute_len, 
+          &nlris[NLRI_MP_UPDATE], &nlris[NLRI_MP_WITHDRAW]);
+      if (attr_parse_ret == BGP_ATTR_PARSE_ERROR)
+  {
+    zlog_debug ("*******... we did have an error after calling bgp_attr_parse and stream_pnt (s); is  %ld but we will continue",stream_pnt (s));
+    //bgp_attr_unintern_sub (&attr);
+         // bgp_attr_flush (&attr);
+    //return -1;
+  }
+    }
+  zlog_debug ("*******... we did call bgp_attr_parse for received FIB entry message from %s",peer->host);
+
+  /* Logging the attribute. */
+  if (attr_parse_ret == BGP_ATTR_PARSE_WITHDRAW)
+    {
+      char attrstr[BUFSIZ];
+      attrstr[0] = '\0';
+
+      ret= bgp_dump_attr (peer, &attr, attrstr, BUFSIZ);
+      int lvl = (attr_parse_ret == BGP_ATTR_PARSE_WITHDRAW)
+                 ? LOG_ERR : LOG_DEBUG;
+      
+      if (attr_parse_ret == BGP_ATTR_PARSE_WITHDRAW)
+        zlog (peer->log, LOG_ERR,
+              "%s rcvd FIB with errors in attr(s)!! Withdrawing route.",
+              peer->host);
+
+      if (ret)
+      {
+          zlog_debug ("*******... we start parsing FIB message received from %ld",peer->as);
+  zlog (peer->log, lvl, "%s rcvd FIB w/ attr: %s from %ld",
+        peer->host, attrstr,peer->as);
+      }
+    }
+
+    /* CIRCA: start with a empty list for prefixes */
+  prefix_list_head = NULL;
+  event_affected_prefix_list_head = NULL;
+  /* Network Layer Reachability Information. */
+  update_len = end - stream_pnt (s);
+
+  if (update_len)
+    {
+      /* Set NLRI portion to structure. */
+      nlris[NLRI_UPDATE].afi = AFI_IP;
+      nlris[NLRI_UPDATE].safi = SAFI_UNICAST;
+      nlris[NLRI_UPDATE].nlri = stream_pnt (s);
+      nlris[NLRI_UPDATE].length = update_len;
+      
+      stream_forward_getp (s, update_len);
+    }
+  
+  /* Parse any given NLRIs */
+  for (i = NLRI_UPDATE; i < NLRI_TYPE_MAX; i++)
+    {
+      if (!nlris[i].nlri) continue;
+      
+      /* We use afi and safi as indices into tables and what not.  It would
+       * be impossible, at this time, to support unknown afi/safis.  And
+       * anyway, the peer needs to be configured to enable the afi/safi
+       * explicitly which requires UI support.
+       *
+       * Ignore unknown afi/safi NLRIs.
+       *
+       * Note: this means nlri[x].afi/safi still can not be trusted for
+       * indexing later in this function!
+       *
+       * Note2: This will also remap the wire code-point for VPN safi to the
+       * internal safi_t point, as needs be.
+       */
+      if (!bgp_afi_safi_valid_indices (nlris[i].afi, &nlris[i].safi))
+        {
+          plog_info (peer->log,
+                     "%s [Info] FIB with unsupported AFI/SAFI %u/%u",
+                     peer->host, nlris[i].afi, nlris[i].safi);
+          continue;
+        }
+      
+      /* NLRI is processed only when the peer is configured specific
+         Address Family and Subsequent Address Family. */
+      if (!peer->afc[nlris[i].afi][nlris[i].safi])
+        {
+          plog_info (peer->log,
+                     "%s [Info] FIB for non-enabled AFI/SAFI %u/%u",
+                     peer->host, nlris[i].afi, nlris[i].safi);
+          continue;
+        }
+      
+      /* EoR handled later */
+      if (nlris[i].length == 0)
+        continue;
+      
+      switch (i)
+        {
+          case NLRI_UPDATE:
+          case NLRI_MP_UPDATE:
+            zlog_debug("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww  start calling circa_nlri_parse for %s \n",peer->host);
+            nlri_ret = circa_nlri_parse (peer, NLRI_ATTR_ARG, &nlris[i]);
+            break;
+          case NLRI_WITHDRAW:
+          case NLRI_MP_WITHDRAW:
+            zlog_debug("this is wrong!!! we supposed to start calling circa_nlri_parse for %s \n",peer->host);
+            nlri_ret = bgp_nlri_parse (peer, NULL, &nlris[i]);
+            this_is_withdraw= true;
+            // zlog_debug("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww %s start adding time stamp!!!! \n",peer->host);
+          
+          // zlog_debug("wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww %s finished!!!! \n",peer->host);
+        }
+    }
+  
+  
+  
+
+  /* If peering is stopped due to some reason, do not generate BGP
+     event.  */
+  if (peer->status != Established)
+    return 0;
+
+  return 0;
+}
+
+/* Parse BGP Update packet and make attribute object. */
+int
+circa_update_receive (struct peer *peer, int size)
+{
+
+  zlog_debug ("this is CIRCA CBGP message from %s ",peer->host);
+
+
+  long seq_number_part_of_event_id;
+  long router_id_part_of_event_id;
+  long seq_number_part_of_time_stamp;
+  long router_id_part_of_time_stamp;
+  long CIRCA_sub_type;
+  bool this_is_withdraw = false;
+  received_packet_is_withdraw = false;
+
+  int next_hop_AS_number = 2;
   int ret, nlri_ret;
   u_char *end;
   struct stream *s;
@@ -4177,6 +4830,7 @@ circa_update_receive (struct peer *peer, int size)
   /* Parse attribute when it exists. */
   if (attribute_len)
     {
+    zlog_debug ("*******... lets call bgp_attr_parse for received CBGP entry message from %s and stream_pnt (s) is %ld ",peer->host,stream_pnt (s));
       attr_parse_ret = bgp_attr_parse (peer, &attr, attribute_len, 
           &nlris[NLRI_MP_UPDATE], &nlris[NLRI_MP_WITHDRAW]);
       if (attr_parse_ret == BGP_ATTR_PARSE_ERROR)
@@ -4186,7 +4840,8 @@ circa_update_receive (struct peer *peer, int size)
     return -1;
   }
     }
-  
+  zlog_debug ("*******... did call bgp_attr_parse for received CBGP entry message from %s and stream_pnt (s) is %ld ",peer->host,stream_pnt (s));
+
   /* Logging the attribute. */
   if (attr_parse_ret == BGP_ATTR_PARSE_WITHDRAW)
     {
@@ -4378,9 +5033,32 @@ circa_update_receive (struct peer *peer, int size)
     strncpy(aspath_str_value,attr.aspath->str,PREFIX_LENGTH);
   }
     zlog_debug("\n ********************* we received an UPDATE message from %s with event id %s and time stamp %s and aspath_str_value %s ************ \n ",peer->host,in_event_id,in_time_stamp_id,aspath_str_value);
-
+    // struct attr *riattr;
+    //bgp_attr_dup (riattr,attr);
     zlog_debug("we are going to add new time stamp from bgp_packet file");
     add_new_time_stamp(&time_stamp_ds_head,in_event_id,in_time_stamp_id,peer->local_as,prefix_list_head,event_affected_prefix_list_head,peer,&attr,aspath_str_value);
+    //shahrooz: required checking
+    if(working_mode==1)
+    {
+      if(avatar)
+      {
+      //zlog_debug("***********************.        we are going to send down FIB ************** to %s",avatar->host);
+        next_hop_AS_number = peer->as;
+      if (next_hop_AS_number ==10)
+        next_hop_AS_number = 1;
+      if (next_hop_AS_number ==20)
+        next_hop_AS_number = 2;  
+      if (next_hop_AS_number ==30)
+        next_hop_AS_number = 3; 
+      //zlog_debug ("We are sending %d as next AS number in circa_msg_fib_entry_send function to be sent ",next_hop_AS_number);
+      circa_msg_fib_entry_send (avatar,in_event_id,NULL,NULL,&attr,next_hop_AS_number);
+      }
+    }
+    //zlog_debug("\n ********************* in saved attr we have  %s ************ \n ",attr.aspath->str);
+    // struct attr * saved_attr = get_attr_of_event(&time_stamp_ds_head,in_event_id);
+    // if (saved_attr==NULL)
+    // zlog_debug("\n ********************* in got attr we have  %s ************ \n ",saved_attr->aspath->str);
+
     // zlog_debug("lets print received time stamp with their prefix list");
     // print_time_stamp(&time_stamp_ds_head);
     insert_in_converged(&converged_head, in_event_id);
@@ -4407,6 +5085,9 @@ circa_update_receive (struct peer *peer, int size)
 static int
 bgp_update_receive (struct peer *peer, bgp_size_t size)
 {
+
+  zlog_debug("We received a BGP update message");
+
   int ret, nlri_ret;
   u_char *end;
   struct stream *s;
@@ -4537,7 +5218,7 @@ bgp_update_receive (struct peer *peer, bgp_size_t size)
     return -1;
   }
     }
-  
+
   /* Logging the attribute. */
   if (attr_parse_ret == BGP_ATTR_PARSE_WITHDRAW
       || 1==1)
@@ -4559,6 +5240,8 @@ bgp_update_receive (struct peer *peer, bgp_size_t size)
           zlog_debug ("*******... we start parsing update message received from %ld",peer->as);
   zlog (peer->log, lvl, "%s rcvd UPDATE w/ attr: %s from %ld",
         peer->host, attrstr,peer->as);
+
+
       }
     }
   
@@ -5301,15 +5984,15 @@ bgp_read (struct thread *thread)
   goto done;
 }
 
-   // zlog_debug (" lets check the message type and size %s", peer->host);
+   //zlog_debug (" lets check the message type and size %s", peer->host);
 
       /* Get size and type. */
       stream_forward_getp (peer->ibuf, BGP_MARKER_SIZE);
-     // zlog_debug (" lets check the message type and size after stream_forward_getp %s", peer->host);
+     //zlog_debug (" lets check the message type and size after stream_forward_getp %s", peer->host);
 
       memcpy (notify_data_length, stream_pnt (peer->ibuf), 2);
 
-     // zlog_debug (" lets check the message type and size after memcpy %s", peer->host);
+     //zlog_debug (" lets check the message type and size after memcpy %s", peer->host);
 
       size = stream_getw (peer->ibuf);
       type = stream_getc (peer->ibuf);
@@ -5320,7 +6003,7 @@ bgp_read (struct thread *thread)
   char result22[50]; 
   sprintf(result22, "%u", type);
 
-  //zlog_debug ("%s the first Type", result22);
+ // zlog_debug ("%s the first Type", result22);
 
 
 
@@ -5329,7 +6012,7 @@ bgp_read (struct thread *thread)
   sprintf(result32, "%u", size);
 
 
-  //zlog_debug ("%s the first size is ", result32 );
+ // zlog_debug ("%s the first size is ", result32 );
 
 
       // if (type == BGP_MSG_FIZZLE)
@@ -5363,7 +6046,7 @@ bgp_read (struct thread *thread)
       {      
 
 
-       // zlog_debug ("We got error due to type != 2 && type != 0 " );
+       //zlog_debug ("We got error due to type != 2 && type != 0 " );
 
 
   zlog_debug ("%s rcv message type %d, length (excl. header) %d",
@@ -5375,7 +6058,7 @@ bgp_read (struct thread *thread)
     && ! bgp_marker_all_one (peer->ibuf, BGP_MARKER_SIZE))
   {
 
-   // zlog_debug ("We got error here " );
+   //zlog_debug ("We got error here " );
 
 
 
@@ -5410,7 +6093,7 @@ bgp_read (struct thread *thread)
     goto done;
   }
 
-   //zlog_debug (" lets check the Mimimum packet length  %s", peer->host);
+  //zlog_debug (" lets check the Mimimum packet length  %s", peer->host);
 
 
 
@@ -5433,7 +6116,7 @@ bgp_read (struct thread *thread)
           peer->host, size, 
           type == 128 ? "ROUTE-REFRESH" :
           bgp_type_str[(int) type]);
-   // zlog_debug (" we are going to call bgp_notify_send_with_data");
+   zlog_debug (" we are going to call bgp_notify_send_with_data");
     bgp_notify_send_with_data (peer,
              BGP_NOTIFY_HEADER_ERR,
                BGP_NOTIFY_HEADER_BAD_MESLEN,
@@ -5446,7 +6129,7 @@ bgp_read (struct thread *thread)
     }
 
 
-   // zlog_debug (" lets bgp_read_packet  %s", peer->host);
+   //zlog_debug (" lets bgp_read_packet  %s", peer->host);
 
   ret = bgp_read_packet (peer);
   if (ret < 0) 
@@ -5460,7 +6143,7 @@ bgp_read (struct thread *thread)
   char result2[50]; 
   sprintf(result2, "%u", type);
 
- // zlog_debug ("%s this is the type of the  received packet", result2);
+ //zlog_debug ("%s this is the type of the  received packet", result2);
 
 
 
@@ -5528,8 +6211,9 @@ bgp_read (struct thread *thread)
       circa_dissemination_receive(peer,size);
       break;
     case CIRCA_MSG_FIB_ENTRY:
-      // zlog_debug ("%s The type of received packet is CIRCA_MSG_FIB_ENTRY, let's pars it from %s", "***************........",peer->host);
+      zlog_debug ("The type of received packet is CIRCA_MSG_FIB_ENTRY, let's pars it from %s", "***************........",peer->host);
       circa_fib_entry_receive(peer,size);
+      //circa_fib_entry_list_of_prefixes_receive(peer,size);
       break;
 
     }

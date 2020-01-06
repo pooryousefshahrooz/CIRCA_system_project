@@ -66,8 +66,75 @@ def main(args=None):
         target_dir = os.getcwd()
         import shutil
         shutil.make_archive(args[1], 'zip', source)
-        os.system("scp "+args[1]+'.zip '+args[2]+':/etc/quagga')
+        #os.system("scp "+args[1]+'.zip '+args[2]+':/etc/quagga')
+
+
+        os.system('ssh  serv1.test.Routing.emulab.net sudo rm -r  /etc/quagga/quagga')
+        os.system('ssh  serv2.test.Routing.emulab.net sudo rm -r  /etc/quagga/quagga')
+        os.system('ssh  serv3.test.Routing.emulab.net sudo rm -r  /etc/quagga/quagga')
+        os.system('ssh  serv10.test.Routing.emulab.net sudo rm -r  /etc/quagga/quagga')
+        os.system('ssh  serv20.test.Routing.emulab.net sudo rm -r  /etc/quagga/quagga')
+        os.system('ssh  serv30.test.Routing.emulab.net sudo rm -r  /etc/quagga/quagga')
+
+
+        os.system("scp "+args[1]+'.zip serv1.test.Routing.emulab.net:/etc/quagga/')
+        os.system("scp "+args[1]+'.zip serv2.test.Routing.emulab.net:/etc/quagga/')
+        os.system("scp "+args[1]+'.zip serv3.test.Routing.emulab.net:/etc/quagga/')
+        os.system("scp "+args[1]+'.zip serv10.test.Routing.emulab.net:/etc/quagga/')
+        os.system("scp "+args[1]+'.zip serv20.test.Routing.emulab.net:/etc/quagga/')
+        os.system("scp "+args[1]+'.zip serv30.test.Routing.emulab.net:/etc/quagga/')
         print 'we moved'
+
+
+        # os.system('ssh  serv1.test.Routing.emulab.net sudo chmod +x /etc/quagga/*.sh')
+        # os.system('ssh  serv2.test.Routing.emulab.net sudo chmod +x /etc/quagga/*.sh')
+        # os.system('ssh  serv3.test.Routing.emulab.net sudo chmod +x /etc/quagga/*.sh')
+        # os.system('ssh  serv10.test.Routing.emulab.net sudo chmod +x /etc/quagga/*.sh')
+        # os.system('ssh  serv20.test.Routing.emulab.net sudo chmod +x /etc/quagga/*.sh')
+        # os.system('ssh  serv30.test.Routing.emulab.net sudo chmod +x /etc/quagga/*.sh')
+
+        # print " ***************************************************.             installing on serv1.test.Routing.emulab.net ********************"
+        # os.system('ssh  serv1.test.Routing.emulab.net sudo /etc/quagga/shell.sh')
+        # import pdb
+        # #pdb.set_trace()
+        # print " ***************************************************.             installing on serv2.test.Routing.emulab.net ********************"
+        # os.system('ssh  serv2.test.Routing.emulab.net sudo /etc/quagga/shell.sh')
+        # print " ***************************************************.             installing on serv3.test.Routing.emulab.net ********************"
+        # os.system('ssh  serv3.test.Routing.emulab.net sudo /etc/quagga/shell.sh')
+        # print " ***************************************************.             installing on serv10.test.Routing.emulab.net ********************"
+        # os.system('ssh  serv10.test.Routing.emulab.net sudo /etc/quagga/shell.sh')
+        # print " ***************************************************.             installing on serv20.test.Routing.emulab.net ********************"
+        # os.system('ssh  serv20.test.Routing.emulab.net sudo /etc/quagga/shell.sh')
+        # print " ***************************************************.             installing on serv30.test.Routing.emulab.net ********************"
+        # os.system('ssh  serv30.test.Routing.emulab.net sudo /etc/quagga/shell.sh')
+        # print 'we installed'
+        time.sleep(7*60)
+        os.system('ssh  serv30.test.Routing.emulab.net sudo /etc/quagga/clear.sh')
+
+        os.system('ssh  serv1.test.Routing.emulab.net sudo sudo /etc/quagga/clear.sh')
+        os.system('ssh  serv2.test.Routing.emulab.net sudo sudo /etc/quagga/clear.sh')
+        os.system('ssh  serv3.test.Routing.emulab.net sudo sudo /etc/quagga/clear.sh')
+
+        time.sleep(7)
+
+        os.system('ssh  serv10.test.Routing.emulab.net sudo /etc/quagga/clear.sh')
+        os.system('ssh  serv20.test.Routing.emulab.net sudo /etc/quagga/clear.sh')
+        
+
+        os.system('ssh  serv1.test.Routing.emulab.net sudo /etc/quagga/createBbgDaemons.sh')
+        os.system('ssh  serv2.test.Routing.emulab.net sudo /etc/quagga/createBbgDaemons.sh')
+        os.system('ssh  serv3.test.Routing.emulab.net sudo /etc/quagga/createBbgDaemons.sh')
+
+        time.sleep(5)
+
+        os.system('ssh  serv10.test.Routing.emulab.net /etc/quagga/createBbgDaemons.sh')
+        os.system('ssh  serv20.test.Routing.emulab.net /etc/quagga/createBbgDaemons.sh')
+        time.sleep(5)
+        os.system('ssh  serv30.test.Routing.emulab.net /etc/quagga/createBbgDaemons.sh')
+        print 'we ran daemons'
+
+
+
         #ssh nodee.simple.routing.emulab.net. / shell.sh
         #os.system("ssh " + args[2] + ' chmod 777 /etc/quagga/shell.sh')
         #print 'we are after chmod'

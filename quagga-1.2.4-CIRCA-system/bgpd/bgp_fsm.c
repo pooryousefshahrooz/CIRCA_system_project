@@ -498,11 +498,22 @@ bgp_stop (struct peer *peer)
       /*  here we will send our grc link down message to our avatar */
       /* First we check if we are in ground mode */
       }
-      // if(working_mode==1)
-      //   if(avatar && strcmp(peer->host,avatar->host)!=0)
-      //   {
-      //     generate_global_event_id(peer->local_as,);
-      //   }
+      if(working_mode==1)
+      {
+
+        if(avatar && peer->as==20 && peer->local_as==30)
+        {
+
+          zlog_debug ("We are sending 1 as next AS number in circa_msg_fib_entry_send function to be sent ");
+          circa_msg_fib_entry_send (avatar,"1004,3",NULL,NULL,NULL,1);
+        }
+      if(avatar && peer->as==10 && peer->local_as==30)
+        {
+
+          zlog_debug ("We are sending 2 as next AS number in circa_msg_fib_entry_send function to be sent ");
+          circa_msg_fib_entry_send (avatar,"1004,3",NULL,NULL,NULL,2);
+        }
+      }
 
 
       if (working_mode ==0)
@@ -946,9 +957,9 @@ bgp_establish (struct peer *peer)
   struct prefix affected_prefix;
   char buf[SU_ADDRSTRLEN];
   if (afi == AFI_IP)
-    str2prefix ("100.1.1.0/24", &affected_prefix);
+    str2prefix ("100.100.0.0/24", &affected_prefix);
   else 
-    str2prefix ("100.1.1.0/24", &affected_prefix);
+    str2prefix ("100.100.0.0/24", &affected_prefix);
 
   zlog_debug (" we generated affected prefix  %s  \n",inet_ntop(affected_prefix.family, &(affected_prefix.u.prefix), buf, INET6_BUFSIZ));
   
@@ -959,41 +970,73 @@ bgp_establish (struct peer *peer)
   self_attr.local_pref = bgp->default_local_pref;
   
 
-    if (working_mode ==0)
-      {
-          struct peer *peer2,*peer3;
-          struct listnode *node, *nnode;
+    // if (working_mode ==0)
+    //   {
+    //       struct peer *peer2,*peer3;
+    //       struct listnode *node, *nnode;
         
-          bgp = bgp_get_default ();
-          if (! bgp)
-            return 0;
-        zlog_debug ("Then we check if the router 2 has been set or not %s, %ld ,%ld",peer->host,peer->as,peer->local_as);
-        /* then we check if the router 2 has been set or not */
-        // if ((2 ==peer->as) && (4== peer->local_as))
-        // {
-        // /* Upon detecting neighbor: */
-        // for (ALL_LIST_ELEMENTS (bgp->peer, node, nnode, peer2))
-        //   {
-        //     if (peer2->as == 3)
-        //     {
-        //       zlog_debug ("we will call update fib entry function with 2,1 aspath with peer  %s ",peer2->host);
-        //       memcpy (&self_attr.nexthop, &peer2->nexthop.v4, IPV4_MAX_BYTELEN);
-        //       circa_fib_entry_update(peer2,&self_attr,&affected_prefix);
-        //       break;
-        //     }
-        //   }
-        // }
-        // else 
-        if ( (3 == peer->as) && (4== peer->local_as))
-        {
-        /* Upon detecting neighbor: */
-          zlog_debug ("we will call update fib entry function with 3,1 aspath with peer %s",peer->host);
-          memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
-          circa_fib_entry_update(peer,&self_attr,&affected_prefix);
-        }
+    //       bgp = bgp_get_default ();
+    //       if (! bgp)
+    //         return 0;
+    //     zlog_debug ("Then we check if the router 2 has been set or not %s, %ld ,%ld",peer->host,peer->as,peer->local_as);
+    //     /* then we check if the router 2 has been set or not */
+    //     // if ((2 ==peer->as) && (4== peer->local_as))
+    //     // {
+    //     // /* Upon detecting neighbor: */
+    //     // for (ALL_LIST_ELEMENTS (bgp->peer, node, nnode, peer2))
+    //     //   {
+    //     //     if (peer2->as == 3)
+    //     //     {
+    //     //       zlog_debug ("we will call update fib entry function with 2,1 aspath with peer  %s ",peer2->host);
+    //     //       memcpy (&self_attr.nexthop, &peer2->nexthop.v4, IPV4_MAX_BYTELEN);
+    //     //       circa_fib_entry_update(peer2,&self_attr,&affected_prefix);
+    //     //       break;
+    //     //     }
+    //     //   }
+    //     // }
+    //     // else 
+    //     if ( (3 == peer->as) && (4== peer->local_as))
+    //     {
+    //     /* Upon detecting neighbor: */
+    //       zlog_debug ("we will call update fib entry function with 3,1 aspath with peer %s",peer->host);
+    //       //  zlog_debug ("&peer->nexthop.v4  %s \n",&peer->nexthop.v4);
+    //     for (ALL_LIST_ELEMENTS (bgp->peer, node, nnode, peer2))
+    //       {
+    //         if (peer2->as == 3)
+    //         {
+    //           zlog_debug ("we set next hop to  %s ",peer2->host);
+    //           zlog_debug ("next hop is  %s , %s",peer2->host,&peer2->nexthop.v4);
+    //           memcpy (&self_attr.nexthop, &peer2->nexthop.v4, IPV4_MAX_BYTELEN);    
+    //           /* Logging the attribute. */
+    
+    //         char attrstr[BUFSIZ];
+    //         attrstr[0] = '\0';
+    //         // int ret= bgp_dump_attr (peer2, &self_attr, attrstr, BUFSIZ);
+    //         // if (ret)
+    //         // {
+    //         //     zlog_debug ("*******... fake fake  we start parsing update message received from %ld",peer2->as);
+    //         //     zlog_debug ("*******... fake fake  rcvd UPDATE w/ attr: %s ",attrstr);
+    //         // }
+              
+    //       struct attr *received_saved_attr = get_attr_from_CIRCA_ds(&time_stamp_ds_head);
+    //       zlog_debug ("*******...we got saved attr ");
+    //       int ret= bgp_dump_attr (peer2, &received_saved_attr, attrstr, BUFSIZ);
+    //         if (ret)
+    //         {
+    //             zlog_debug ("*******... changed changed  we start parsing update message received from %ld",peer2->as);
+    //             zlog_debug ("*******... changed changed  rcvd UPDATE w/ attr: %s ",attrstr);
+    //         }
+    //       //circa_fib_entry_update(peer2,&received_saved_attr,&affected_prefix);
+    //           break;
+    //         }
+    //       }
+    //       //memcpy (&self_attr.nexthop, &peer->nexthop.v4, IPV4_MAX_BYTELEN);
 
-      }
-    zlog_debug ("we finished updating the fib entry with %s ",peer->host);
+
+    //     }
+
+    //   }
+    // zlog_debug ("we finished updating the fib entry with %s ",peer->host);
 
       // time_stamp_ds_head = NULL;
       // prefix_list_head = NULL;
